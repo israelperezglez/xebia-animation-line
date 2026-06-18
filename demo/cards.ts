@@ -19,7 +19,8 @@ type Card =
   | { type: 'split'; label: string; title: string; desc: string; cta: string; viz: Viz }
   | { type: 'stacked'; label: string; title: string; desc: string; cta: string; viz: Viz }
   | { type: 'quote'; quote: string; author: string; viz: Viz }
-  | { type: 'stats'; title: string; sub: string; stats: { n: string; l: string }[]; viz: Viz };
+  | { type: 'stats'; title: string; sub: string; stats: { n: string; l: string }[]; viz: Viz }
+  | { type: 'cover'; label: string; title: string; cta: string; viz: Viz };
 
 const CARDS: Card[] = [
   {
@@ -66,6 +67,18 @@ const CARDS: Card[] = [
     desc: 'Generative line fields as a visual language for data in motion.',
     cta: 'Read More',
     viz: { variant: 'flujo', palette: P.warm, background: DARK, zoom: 1.6 },
+  },
+  {
+    type: 'cover', label: 'Report',
+    title: 'The State of Platform Engineering',
+    cta: 'Read More',
+    viz: { variant: 'oscilacion', palette: P.teal, background: DARK, zoom: 1.4 },
+  },
+  {
+    type: 'cover', label: 'Case study',
+    title: 'Enterprise AI, in Motion',
+    cta: 'Read More',
+    viz: { variant: 'interferencia', palette: P.violet, background: BRAND, zoom: 1.4 },
   },
 ];
 
@@ -114,6 +127,15 @@ function render(card: Card): HTMLElement {
         <div class="accent"></div>
         <div class="viz"></div>
       </article>`;
+  } else if (card.type === 'cover') {
+    el.innerHTML = `
+      <article class="xcard cover">
+        <div class="viz"></div>
+        <div class="overlay">
+          <div class="top"><span class="kicker">${card.label}</span></div>
+          <div class="foot"><h2>${card.title}</h2><button class="pill light">${card.cta}</button></div>
+        </div>
+      </article>`;
   } else {
     const tiles = card.stats
       .map((s) => `<div class="tile"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`)
@@ -140,6 +162,17 @@ for (const card of CARDS) {
     palette: card.viz.palette,
     background: card.viz.background,
     zoom: card.viz.zoom,
+  }));
+}
+
+// Hero al final (animación close-up en la zona de imagen).
+const heroViz = document.getElementById('heroviz');
+if (heroViz) {
+  fields.push(new LineField(heroViz, {
+    variant: 'malla',
+    palette: ['#5ad1ff', '#9b8cff', '#e05bd0'],
+    background: { type: 'gradient', from: '#160a2b', to: '#2a164d' },
+    zoom: 1.6,
   }));
 }
 

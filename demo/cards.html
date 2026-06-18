@@ -67,7 +67,29 @@
   .bgbar .bgdot{width:24px;height:24px;border-radius:7px;cursor:pointer;border:2px solid #ffffff40;transition:transform .12s;}
   .bgbar .bgdot:hover{transform:scale(1.12);}
   .bgbar .bgdot.active{border-color:#fff;transform:scale(1.12);}
-  @media (max-width:880px){ #cards{grid-template-columns:1fr;} }
+  /* cover: animación a sangre completa, texto encima */
+  .xcard.cover .viz{position:absolute;inset:0;}
+  .xcard.cover .overlay{position:absolute;inset:0;z-index:2;padding:30px 28px;display:flex;flex-direction:column;color:#fff;
+    background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 34%,rgba(0,0,0,0) 58%,rgba(0,0,0,.62) 100%);}
+  .xcard.cover .overlay .top{margin-bottom:auto;}
+  .xcard.cover .overlay .kicker{color:#e6e9f2;}
+  .xcard.cover .overlay .foot{display:flex;flex-direction:column;gap:16px;}
+  .xcard.cover h2{font-size:30px;color:#fff;}
+  .pill.light{background:#ffffff22;border-color:#ffffff77;color:#fff;backdrop-filter:blur(6px);}
+
+  /* hero al final */
+  .herowrap{max-width:1200px;margin:28px auto 0;padding:0 24px;}
+  .hlabel{color:#cfd6e6;font-size:14px;margin-bottom:12px;}
+  .hero{display:flex;height:520px;overflow:hidden;}
+  .hero .viz{flex:1 1 62%;background:#160a2b;}
+  .hero .panel{flex:0 0 38%;display:flex;flex-direction:column;}
+  .hero .block{padding:40px 44px;display:flex;flex-direction:column;}
+  .hero .block.purple{flex:0 0 56%;background:#7a1f9c;color:#fff;}
+  .hero .block.light{flex:1;background:#f3eef6;color:#190a1d;}
+  .hero .stat{font-size:60px;font-weight:600;letter-spacing:-.03em;line-height:1;}
+  .hero .sub{font-size:20px;line-height:1.3;margin-top:18px;max-width:24ch;}
+
+  @media (max-width:880px){ #cards{grid-template-columns:1fr;} .hero{flex-direction:column;height:auto;} .hero .viz{height:300px;} }
 </style>
 </head>
 <body>
@@ -77,6 +99,24 @@
   </header>
   <div class="bgbar" id="cardbg"></div>
   <div id="cards"></div>
+
+  <div class="herowrap">
+    <div class="hlabel">Hero</div>
+    <div class="hero">
+      <div class="viz" id="heroviz"></div>
+      <div class="panel">
+        <div class="block purple">
+          <div class="stat">900+</div>
+          <div class="sub">A structured view of where enterprise AI is heading</div>
+        </div>
+        <div class="block light">
+          <div class="stat">54</div>
+          <div class="sub">A structured view of where enterprise AI is heading</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="./cards.ts"></script>
 </body>
 </html>
