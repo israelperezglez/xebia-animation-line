@@ -9,8 +9,9 @@ const VERT = `
 attribute vec2 position;
 attribute float s;
 uniform float uZoom;
+uniform vec2 uPan;
 varying float vS;
-void main() { vS = s; gl_Position = vec4(position * uZoom, 0.0, 1.0); }
+void main() { vS = s; gl_Position = vec4(position * uZoom + uPan, 0.0, 1.0); }
 `;
 
 const FRAG = `
@@ -42,7 +43,7 @@ export class Renderer {
     this.gradient = new Texture(this.gl, { image: buildGradientPixels(['#000', '#fff']), width: 256, height: 1, generateMipmaps: false });
     this.program = new Program(this.gl, {
       vertex: VERT, fragment: FRAG, transparent: true,
-      uniforms: { uGradient: { value: this.gradient }, uAlpha: { value: 0.85 }, uZoom: { value: 1 } },
+      uniforms: { uGradient: { value: this.gradient }, uAlpha: { value: 0.85 }, uZoom: { value: 1 }, uPan: { value: [0, 0] } },
     });
     this.geometry = new Geometry(this.gl, {
       position: { size: 2, data: new Float32Array() },
@@ -70,6 +71,10 @@ export class Renderer {
 
   setZoom(zoom: number): void {
     this.program.uniforms.uZoom.value = zoom;
+  }
+
+  setPan(x: number, y: number): void {
+    this.program.uniforms.uPan.value = [x, y];
   }
 
   resize(): void {

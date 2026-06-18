@@ -20,7 +20,8 @@ type Card =
   | { type: 'stacked'; label: string; title: string; desc: string; cta: string; viz: Viz }
   | { type: 'quote'; quote: string; author: string; viz: Viz }
   | { type: 'stats'; title: string; sub: string; stats: { n: string; l: string }[]; viz: Viz }
-  | { type: 'cover'; label: string; title: string; cta: string; viz: Viz };
+  | { type: 'cover'; label: string; title: string; cta: string; viz: Viz }
+  | { type: 'coverMinimal'; title: string; viz: Viz };
 
 const CARDS: Card[] = [
   {
@@ -80,6 +81,16 @@ const CARDS: Card[] = [
     cta: 'Read More',
     viz: { variant: 'interferencia', palette: P.violet, background: BRAND, zoom: 2.4 },
   },
+  {
+    type: 'coverMinimal',
+    title: 'Structure',
+    viz: { variant: 'rejilla', palette: P.cool, background: DARK, zoom: 2.2 },
+  },
+  {
+    type: 'coverMinimal',
+    title: 'Symmetry',
+    viz: { variant: 'espiral', palette: P.violet, background: BRAND, zoom: 2.0 },
+  },
 ];
 
 // Fondos seleccionables (override global de la animación de todas las cards).
@@ -136,6 +147,12 @@ function render(card: Card): HTMLElement {
           <div class="foot"><h2>${card.title}</h2><button class="pill light">${card.cta}</button></div>
         </div>
       </article>`;
+  } else if (card.type === 'coverMinimal') {
+    el.innerHTML = `
+      <article class="xcard cover minimal">
+        <div class="viz"></div>
+        <div class="overlay"><div class="top"></div><div class="foot"><h2>${card.title}</h2></div></div>
+      </article>`;
   } else {
     const tiles = card.stats
       .map((s) => `<div class="tile"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`)
@@ -153,8 +170,14 @@ function render(card: Card): HTMLElement {
   return el.firstElementChild as HTMLElement;
 }
 
-function addZoomControl(node: HTMLElement, field: LineField, z0: number): void {
+const PAN_PRESETS = [
+  { x: 0, y: 0 }, { x: 0, y: 0.45 }, { x: 0, y: -0.45 }, { x: 0.45, y: 0 }, { x: -0.45, y: 0 },
+];
+
+// Control en vivo: zoom (− / +) y "región" (recorre la zona visible de la animación).
+function addVizControl(node: HTMLElement, field: LineField, z0: number): void {
   let z = z0;
+  let pi = 0;
   const ctl = document.createElement('div');
   ctl.className = 'zoomctl';
   const minus = document.createElement('button');
@@ -162,12 +185,16 @@ function addZoomControl(node: HTMLElement, field: LineField, z0: number): void {
   const val = document.createElement('span');
   const plus = document.createElement('button');
   plus.textContent = '+';
+  const region = document.createElement('button');
+  region.textContent = '◳';
+  region.title = 'Cambiar zona';
+  region.style.marginLeft = '4px';
   const fmt = () => { val.textContent = `${z.toFixed(1)}×`; };
-  const apply = () => { field.setOptions({ zoom: z }); fmt(); };
-  minus.onclick = () => { z = Math.max(1, Math.round((z - 0.2) * 10) / 10); apply(); };
-  plus.onclick = () => { z = Math.min(4, Math.round((z + 0.2) * 10) / 10); apply(); };
+  minus.onclick = () => { z = Math.max(1, Math.round((z - 0.2) * 10) / 10); field.setOptions({ zoom: z }); fmt(); };
+  plus.onclick = () => { z = Math.min(4, Math.round((z + 0.2) * 10) / 10); field.setOptions({ zoom: z }); fmt(); };
+  region.onclick = () => { pi = (pi + 1) % PAN_PRESETS.length; field.setOptions({ pan: PAN_PRESETS[pi] }); };
   fmt();
-  ctl.append(minus, val, plus);
+  ctl.append(minus, val, plus, region);
   node.appendChild(ctl);
 }
 
@@ -182,18 +209,35 @@ for (const card of CARDS) {
     zoom: card.viz.zoom,
   });
   fields.push(field);
-  addZoomControl(node, field, card.viz.zoom);
+  addVizControl(node, field, card.viz.zoom);
 }
 
-// Hero al final (animación close-up en la zona de imagen).
+// Hero 1: split (animación close-up en la zona de imagen) + control.
 const heroViz = document.getElementById('heroviz');
 if (heroViz) {
-  fields.push(new LineField(heroViz, {
+  const z = 1.6;
+  const hf = new LineField(heroViz, {
     variant: 'malla',
     palette: ['#5ad1ff', '#9b8cff', '#e05bd0'],
     background: { type: 'gradient', from: '#160a2b', to: '#2a164d' },
-    zoom: 1.6,
-  }));
+    zoom: z,
+  });
+  fields.push(hf);
+  addVizControl(heroViz, hf, z);
+}
+
+// Hero 2: banner full-width minimalista + control.
+const heroViz2 = document.getElementById('heroviz2');
+if (heroViz2) {
+  const z = 1.8;
+  const hf2 = new LineField(heroViz2, {
+    variant: 'flujo',
+    palette: ['#5ad1ff', '#9b8cff', '#e05bd0'],
+    background: { type: 'gradient', from: '#06101a', to: '#0a1b2b' },
+    zoom: z,
+  });
+  fields.push(hf2);
+  addVizControl(heroViz2, hf2, z);
 }
 
 // Selector de fondo global para las animaciones de las cards.

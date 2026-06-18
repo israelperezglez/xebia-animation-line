@@ -5,7 +5,7 @@ import { prefersReducedMotion } from './reducedMotion';
 import { Renderer } from './Renderer';
 
 interface Internals {
-  renderer?: Pick<Renderer, 'setPalette' | 'setBackground' | 'setZoom' | 'resize' | 'size' | 'draw' | 'destroy'>;
+  renderer?: Pick<Renderer, 'setPalette' | 'setBackground' | 'setZoom' | 'setPan' | 'resize' | 'size' | 'draw' | 'destroy'>;
   autoStart?: boolean;
   reducedMotion?: boolean;
 }
@@ -30,6 +30,7 @@ export class LineField {
     this.renderer!.setPalette(this.opts.palette);
     this.renderer!.setBackground(resolveBackground(this.opts.background));
     this.renderer!.setZoom(this.opts.zoom ?? 1);
+    this.renderer!.setPan(this.opts.pan?.x ?? 0, this.opts.pan?.y ?? 0);
     this.renderer!.resize();
   }
 
