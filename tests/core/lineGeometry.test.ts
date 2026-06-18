@@ -2,18 +2,20 @@ import { describe, it, expect } from 'vitest';
 import { polylinesToSegments } from '../../src/core/lineGeometry';
 
 describe('polylinesToSegments', () => {
-  it('expands an N-point polyline into (N-1) clip-space segments', () => {
-    // one polyline with 3 points → 2 segments → 4 vertices (8 floats for vec2)
-    const r = polylinesToSegments([{ pts: [0, 0, 400, 300, 800, 600], s: 0.5 }], 800, 600);
-    expect(r.position.length).toBe(4 * 2);
-    expect(r.s.length).toBe(4);
-    // first point (0,0) px → clip (-1, 1)
+  it('expands an N-point polyline into thick-line triangles', () => {
+    // 3 puntos → 2 segmentos × 2 triángulos × 3 vértices = 12 vértices
+    const r = polylinesToSegments([{ pts: [0, 0, 400, 300, 800, 600], s: 0.5 }], 800, 600, { thickness: 2 });
+    expect(r.position.length).toBe(12 * 2);
+    expect(r.s.length).toBe(12);
+    expect([...r.position].every(Number.isFinite)).toBe(true);
+    expect([...r.s].every((v) => v === 0.5)).toBe(true);
+  });
+
+  it('centra los vértices cerca del punto en clip space (grosor pequeño)', () => {
+    const r = polylinesToSegments([{ pts: [0, 0, 800, 600], s: 1 }], 800, 600, { thickness: 0 });
+    // primer vértice (esquina del punto (0,0)) ≈ clip (-1, 1)
     expect(r.position[0]).toBeCloseTo(-1);
     expect(r.position[1]).toBeCloseTo(1);
-    // last point (800,600) px → clip (1, -1)
-    expect(r.position[6]).toBeCloseTo(1);
-    expect(r.position[7]).toBeCloseTo(-1);
-    expect(r.s.every((v) => v === 0.5)).toBe(true);
   });
 
   it('skips degenerate single-point polylines', () => {

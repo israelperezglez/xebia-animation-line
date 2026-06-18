@@ -5,7 +5,7 @@ import { lerp } from '../core/geom';
 export const entrelazado: Variant = {
   name: 'entrelazado',
   generate({ t, W, H, lineCount }: VariantEnv): Polyline[] {
-    const N = lineCount ?? 80, samples = 120;
+    const N = lineCount ?? 44, samples = 120;
     const midY = H * 0.5, amp1 = H * 0.22, amp2 = H * 0.12;
     // onda triangular (zigzag) en lugar de senoidal → trenzado angular/geométrico
     const tri = (p: number): number => { const x = p / 6.283; const f = x - Math.floor(x); return 4 * Math.abs(f - 0.5) - 1; };

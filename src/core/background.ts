@@ -1,9 +1,12 @@
 import type { Background } from './types';
 
 export interface ResolvedBackground {
-  clear: [number, number, number, number];
-  blend: 'add' | 'normal';
-  gradient?: { from: string; to: string; angle: number };
+  draw: boolean;                       // pintar el quad de fondo (false = transparente)
+  from: [number, number, number];
+  to: [number, number, number];
+  angle: number;                       // radianes
+  blend: 'add' | 'normal' | 'multiply';// mezcla de las líneas
+  clearAlpha: number;                  // alpha del clear (0 transparente, 1 opaco)
 }
 
 function hexToUnit(hex: string): [number, number, number] {
@@ -11,23 +14,19 @@ function hexToUnit(hex: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-function luminance(hex: string): number {
-  const [r, g, b] = hexToUnit(hex);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+function lum(rgb: [number, number, number]): number {
+  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
 }
 
 export function resolveBackground(bg: Background): ResolvedBackground {
   if (bg.type === 'transparent') {
-    return { clear: [0, 0, 0, 0], blend: 'add' };
+    return { draw: false, from: [0, 0, 0], to: [0, 0, 0], angle: 0, blend: 'add', clearAlpha: 0 };
   }
-  if (bg.type === 'gradient') {
-    return {
-      clear: [...hexToUnit(bg.from), 1] as [number, number, number, number],
-      blend: 'add',
-      gradient: { from: bg.from, to: bg.to, angle: bg.angle ?? 45 },
-    };
-  }
-  // solid: light backgrounds can't show additive glow → use normal blend
-  const blend = luminance(bg.color) > 0.6 ? 'normal' : 'add';
-  return { clear: [...hexToUnit(bg.color), 1] as [number, number, number, number], blend };
+  const from = bg.type === 'gradient' ? hexToUnit(bg.from) : hexToUnit(bg.color);
+  const to = bg.type === 'gradient' ? hexToUnit(bg.to) : from;
+  const angle = ((bg.type === 'gradient' ? bg.angle ?? 45 : 45) * Math.PI) / 180;
+  // Claro → "multiply" (líneas oscurecen el fondo). Oscuro → "normal" (sin acumulación
+  // aditiva, así no se queman los cruces formando manchas de luz).
+  const blend = (lum(from) + lum(to)) / 2 > 0.55 ? 'multiply' : 'normal';
+  return { draw: true, from, to, angle, blend, clearAlpha: 1 };
 }

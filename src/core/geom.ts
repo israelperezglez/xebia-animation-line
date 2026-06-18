@@ -10,6 +10,15 @@ export function auto(t: number): { mx: number; my: number } {
   };
 }
 
+/** Factor irregular determinista (~[1-amp, 1+amp]) para romper la simetría geométrica. */
+export function irr(a: number, amp = 0.18): number {
+  return 1 + amp * (
+    Math.sin(a * 2.3 + 1.0) * 0.5 +
+    Math.sin(a * 3.7 + 2.1) * 0.3 +
+    Math.sin(a * 5.1 + 4.0) * 0.2
+  );
+}
+
 /** Rotate (x,y,z) about Y then X, apply perspective, map to pixel space. */
 export function project3d(
   x: number, y: number, z: number,

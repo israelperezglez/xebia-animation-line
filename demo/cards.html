@@ -21,6 +21,7 @@
   .pill{align-self:flex-start;border:1px solid #cfcfd6;background:#fff;color:#0b0b0d;
     padding:10px 18px;border-radius:99px;font-size:13px;cursor:pointer;font-family:inherit;}
   .accent{width:4px;flex:0 0 4px;background:linear-gradient(180deg,#ff7eb3,#8a5cff,#3fd6a0);}
+  .xcard .pill{display:none;} /* sin botones "Read More" en las cards */
   .viz{position:relative;background:#06101a;}
   .viz canvas{position:absolute;inset:0;}
 
@@ -57,12 +58,12 @@
   .xcard.statscard .sub{font-size:13px;color:var(--muted);margin-top:10px;}
   .xcard.statscard .viz{flex:1;}
   .statsviz .tiles{position:absolute;inset:auto 22px 22px 22px;z-index:3;display:flex;gap:12px;}
-  .statsviz .tile{flex:1;background:#ffffff1a;border:1px solid #ffffff2e;border-radius:4px;
+  .statsviz .tile{flex:1;background:#ffffff1a;border:none;border-radius:4px;
     padding:16px 14px;backdrop-filter:blur(6px);color:#eef;}
   .statsviz .tile .n{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1;}
   .statsviz .tile .l{font-size:11px;color:#cdd3e6;margin-top:14px;line-height:1.3;}
 
-  .bgbar{max-width:1200px;margin:0 auto;padding:6px 24px 0;display:flex;gap:8px;align-items:center;color:#e8e8ee;}
+  .bgbar{position:sticky;top:0;z-index:30;padding:12px 24px;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;color:#e8e8ee;background:rgba(13,13,16,.82);backdrop-filter:blur(8px);border-bottom:1px solid #ffffff14;}
   .bgbar .blabel{font-size:11px;opacity:.5;text-transform:uppercase;letter-spacing:.08em;margin-right:4px;}
   .bgbar .bgdot{width:24px;height:24px;border-radius:7px;cursor:pointer;border:2px solid #ffffff40;transition:transform .12s;}
   .bgbar .bgdot:hover{transform:scale(1.12);}
@@ -84,6 +85,30 @@
   .xcard.cover .overlay .foot{display:flex;flex-direction:column;gap:16px;}
   .xcard.cover h2{font-size:30px;color:#fff;}
   .pill.light{background:#ffffff22;border-color:#ffffff77;color:#fff;backdrop-filter:blur(6px);}
+
+  /* wide: cover a doble columna (banner ancho) */
+  .xcard.wide{grid-column:1 / -1;height:420px;}
+  .xcard.wide h2{font-size:36px;max-width:18ch;}
+
+  /* fondo claro: el texto de las cover pasa a negro con scrim claro */
+  body.cards-light .xcard.cover .overlay{color:#0b0b0d;background:linear-gradient(180deg,rgba(255,255,255,.4) 0%,rgba(255,255,255,0) 36%,rgba(255,255,255,0) 56%,rgba(255,255,255,.62) 100%);}
+  body.cards-light .xcard.cover .overlay,
+  body.cards-light .xcard.cover h2{color:#0b0b0d;}
+  body.cards-light .xcard.cover .overlay .kicker{color:#444;}
+  body.cards-light .xcard.cover .pill.light{background:#0000000d;border-color:#00000040;color:#0b0b0d;backdrop-filter:none;}
+
+  /* fondo claro: overlays de los heroes con texto oscuro y scrim claro */
+  body.cards-light .h-banner .overlay,
+  body.cards-light .h-centered .overlay,
+  body.cards-light .h-statcover .overlay{color:#0b0b0d;}
+  body.cards-light .h-banner .overlay{background:linear-gradient(90deg,rgba(255,255,255,.6),rgba(255,255,255,0) 70%);}
+  body.cards-light .h-centered .overlay{background:radial-gradient(60% 60% at 50% 50%,rgba(255,255,255,.55),rgba(255,255,255,.15));}
+  body.cards-light .h-statcover .overlay{background:linear-gradient(180deg,rgba(255,255,255,0) 50%,rgba(255,255,255,.62) 100%);}
+  body.cards-light .h-tript .titleband{color:#0b0b0d;background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.68));}
+  body.cards-light .h-duo .half .lab{color:#0b0b0d;text-shadow:0 1px 6px rgba(255,255,255,.7);}
+  /* fondo claro: tiles de stats con texto oscuro */
+  body.cards-light .statsviz .tile{background:rgba(255,255,255,.3);color:#0b0b0d;backdrop-filter:blur(14px);box-shadow:0 6px 22px rgba(0,0,0,.08);}
+  body.cards-light .statsviz .tile .l{color:#555;}
 
   /* cover minimalista */
   .xcard.cover.minimal .overlay{background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.6) 100%);}
@@ -131,6 +156,13 @@
   .h-duo .half{flex:1;position:relative;overflow:hidden;}
   .h-duo .half .viz{position:absolute;inset:0;}
   .h-duo .half .lab{position:absolute;left:22px;bottom:20px;z-index:2;color:#fff;font-size:13px;letter-spacing:.1em;text-transform:uppercase;text-shadow:0 1px 6px #000a;}
+
+  .h-tript{position:relative;display:flex;gap:2px;height:460px;overflow:hidden;}
+  .h-tript .col{flex:1;position:relative;overflow:hidden;}
+  .h-tript .col .viz{position:absolute;inset:0;}
+  .h-tript .titleband{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:26px 32px;color:#fff;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.66));}
+  .h-tript .titleband h2{font-size:30px;}
+  .h-tript .titleband .sub{font-size:15px;opacity:.85;margin-top:8px;}
 
   @media (max-width:880px){ #cards{grid-template-columns:1fr;} .h-split,.h-textleft,.h-duo{flex-direction:column;height:auto;} .h-split .viz,.h-textleft .viz{height:300px;} .h-duo .half{height:260px;} }
 </style>

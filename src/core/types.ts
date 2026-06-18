@@ -1,6 +1,8 @@
 export const VARIANT_NAMES = [
   'oscilacion', 'onda', 'interferencia', 'malla', 'rejilla',
   'pliegues', 'cubo', 'flujo', 'entrelazado', 'espiral',
+  'tubo', 'cono', 'cinta', 'helice', 'embudo', 'duna',
+  'quilla', 'helicoide', 'voluta', 'celosia',
 ] as const;
 
 export type VariantName = (typeof VARIANT_NAMES)[number];
@@ -18,6 +20,7 @@ export interface LineFieldOptions {
   lineCount?: number;           // optional density override
   zoom?: number;                // default 1; >1 = close-up (amplía y recorta bordes)
   pan?: { x: number; y: number }; // desplaza la zona visible (clip space), default {0,0}
+  thickness?: number;             // grosor de línea en px, default 1.7
 }
 
 /** Pixel-space polyline: pts = [x0,y0, x1,y1, ...] in [0,W]×[0,H], y-down. */

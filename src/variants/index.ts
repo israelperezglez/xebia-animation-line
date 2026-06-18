@@ -9,8 +9,19 @@ import { cubo } from './cubo';
 import { flujo } from './flujo';
 import { entrelazado } from './entrelazado';
 import { espiral } from './espiral';
+import { tubo } from './tubo';
+import { cono } from './cono';
+import { cinta } from './cinta';
+import { helice } from './helice';
+import { embudo } from './embudo';
+import { duna } from './duna';
+import { quilla } from './quilla';
+import { helicoide } from './helicoide';
+import { voluta } from './voluta';
+import { celosia } from './celosia';
 
 export const VARIANTS: Record<VariantName, Variant> = {
   oscilacion, onda, interferencia, malla, rejilla, pliegues, cubo,
-  flujo, entrelazado, espiral,
+  flujo, entrelazado, espiral, tubo, cono, cinta, helice, embudo, duna,
+  quilla, helicoide, voluta, celosia,
 };

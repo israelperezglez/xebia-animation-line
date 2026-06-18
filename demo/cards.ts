@@ -16,13 +16,18 @@ const P = {
 
 interface Viz { variant: VName; palette: string[]; background: Background; zoom: number; }
 
+const DEFAULT_ZOOM = 3.2; // close-up por defecto en cards y heroes
+const MAX_ZOOM = 6;
+const DEFAULT_BACKGROUND: Background = { type: 'solid', color: '#f3ecf6' }; // claro por defecto
+
 type Card =
   | { type: 'split'; label: string; title: string; desc: string; cta: string; viz: Viz }
   | { type: 'stacked'; label: string; title: string; desc: string; cta: string; viz: Viz }
   | { type: 'quote'; quote: string; author: string; viz: Viz }
   | { type: 'stats'; title: string; sub: string; stats: { n: string; l: string }[]; viz: Viz }
   | { type: 'cover'; label: string; title: string; cta: string; viz: Viz }
-  | { type: 'coverMinimal'; title: string; viz: Viz };
+  | { type: 'coverMinimal'; title: string; viz: Viz }
+  | { type: 'wide'; label: string; title: string; cta: string; viz: Viz };
 
 const CARDS: Card[] = [
   { type: 'split', label: 'Article', title: 'Designing APIs That Developers Actually Love', desc: 'Real-world insights from data mesh implementations.', cta: 'Read More', viz: { variant: 'malla', palette: P.teal, background: DARK, zoom: 1.8 } },
@@ -35,13 +40,27 @@ const CARDS: Card[] = [
   { type: 'cover', label: 'Case study', title: 'Enterprise AI, in Motion', cta: 'Read More', viz: { variant: 'interferencia', palette: P.violet, background: BRAND, zoom: 2.4 } },
   { type: 'coverMinimal', title: 'Structure', viz: { variant: 'rejilla', palette: P.cool, background: DARK, zoom: 2.2 } },
   { type: 'coverMinimal', title: 'Symmetry', viz: { variant: 'espiral', palette: P.violet, background: BRAND, zoom: 2.0 } },
+  { type: 'cover', label: 'Motion', title: 'Rolled & Gathered', cta: 'Read More', viz: { variant: 'tubo', palette: P.teal, background: DARK, zoom: 1.6 } },
+  { type: 'coverMinimal', title: 'Cone', viz: { variant: 'cono', palette: P.violet, background: BRAND, zoom: 1.6 } },
+  { type: 'split', label: 'Insight', title: 'Twisting Ribbons of Data', desc: 'A ruled surface that gathers and fuses as it turns.', cta: 'Read More', viz: { variant: 'cinta', palette: P.warm, background: DARK, zoom: 1.5 } },
+  { type: 'stacked', label: 'Article', title: 'Helical Systems', desc: 'Coiled line fields with travelling pinches.', cta: 'Read More', viz: { variant: 'helice', palette: P.cool, background: DARK, zoom: 1.5 } },
+  { type: 'cover', label: 'Case study', title: 'Into the Funnel', cta: 'Read More', viz: { variant: 'embudo', palette: P.violet, background: BRAND, zoom: 1.5 } },
+  { type: 'coverMinimal', title: 'Dune', viz: { variant: 'duna', palette: P.teal, background: DARK, zoom: 1.5 } },
+  { type: 'wide', label: 'Showreel', title: 'A generative line system for the Xebia brand', cta: 'Explore', viz: { variant: 'embudo', palette: P.violet, background: PURPLE, zoom: 1.4 } },
+  { type: 'cover', label: 'Form', title: 'Quilla', cta: 'Read More', viz: { variant: 'quilla', palette: P.teal, background: PURPLE, zoom: 1.5 } },
+  { type: 'coverMinimal', title: 'Helicoide', viz: { variant: 'helicoide', palette: P.violet, background: DARK, zoom: 1.6 } },
+  { type: 'split', label: 'Insight', title: 'Scrolls & Volutes', desc: 'Curling line systems for motion design.', cta: 'Read More', viz: { variant: 'voluta', palette: P.warm, background: DARK, zoom: 1.5 } },
+  { type: 'stacked', label: 'Article', title: 'Woven Lattices', desc: 'Shearing grids that recompose continuously.', cta: 'Read More', viz: { variant: 'celosia', palette: P.violet, background: BRAND, zoom: 1.4 } },
+  { type: 'stats', title: 'By the numbers', sub: 'Generative system metrics', stats: [{ n: '20', l: 'Variants' }, { n: '∞', l: 'Combinations' }, { n: '60', l: 'FPS' }], viz: { variant: 'cono', palette: P.cool, background: DARK, zoom: 1.5 } },
+  { type: 'wide', label: 'Lab', title: 'Twenty forms, infinite recompositions', cta: 'Explore', viz: { variant: 'helicoide', palette: P.teal, background: DARK, zoom: 1.5 } },
 ];
 
-const BACKGROUNDS: { name: string; bg: Background; css: string }[] = [
+const BACKGROUNDS: { name: string; bg: Background; css: string; light?: boolean }[] = [
   { name: 'Oscuro', bg: DARK, css: 'linear-gradient(135deg,#06101a,#0a1b2b)' },
   { name: 'Marca', bg: BRAND, css: 'linear-gradient(135deg,#0b1f3a,#3a1d5c)' },
   { name: 'Negro', bg: { type: 'solid', color: '#000000' }, css: '#000000' },
-  { name: 'Claro', bg: { type: 'solid', color: '#eef2f7' }, css: '#eef2f7' },
+  { name: 'Claro', bg: { type: 'solid', color: '#f3ecf6' }, css: '#f3ecf6', light: true },
+  { name: 'Lavanda', bg: { type: 'gradient', from: '#eef0ff', to: '#dfeaff' }, css: 'linear-gradient(135deg,#eef0ff,#dfeaff)', light: true },
 ];
 
 // ---- Gestor: solo animar lo visible (evita el límite de contextos WebGL ~16) ----
@@ -77,7 +96,7 @@ function addZoomControl(node: HTMLElement, slot: Slot): void {
   const plus = document.createElement('button'); plus.textContent = '+';
   const fmt = () => { val.textContent = `${z.toFixed(1)}×`; };
   minus.onclick = () => { z = Math.max(1, Math.round((z - 0.2) * 10) / 10); slot.opts.zoom = z; slot.field?.setOptions({ zoom: z }); fmt(); };
-  plus.onclick = () => { z = Math.min(4, Math.round((z + 0.2) * 10) / 10); slot.opts.zoom = z; slot.field?.setOptions({ zoom: z }); fmt(); };
+  plus.onclick = () => { z = Math.min(MAX_ZOOM, Math.round((z + 0.2) * 10) / 10); slot.opts.zoom = z; slot.field?.setOptions({ zoom: z }); fmt(); };
   fmt();
   ctl.append(minus, val, plus);
   node.appendChild(ctl);
@@ -134,6 +153,15 @@ function render(card: Card): HTMLElement {
         <div class="viz"></div>
         <div class="overlay"><div class="top"></div><div class="foot"><h2>${card.title}</h2></div></div>
       </article>`;
+  } else if (card.type === 'wide') {
+    el.innerHTML = `
+      <article class="xcard cover wide">
+        <div class="viz"></div>
+        <div class="overlay">
+          <div class="top"><span class="kicker">${card.label}</span></div>
+          <div class="foot"><h2>${card.title}</h2><button class="pill light">${card.cta}</button></div>
+        </div>
+      </article>`;
   } else {
     const tiles = card.stats.map((s) => `<div class="tile"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`).join('');
     el.innerHTML = `
@@ -154,7 +182,7 @@ for (const card of CARDS) {
   const node = render(card);
   root.appendChild(node);
   const viz = node.querySelector<HTMLElement>('.viz')!;
-  const slot = register(viz, card.viz);
+  const slot = register(viz, { ...card.viz, zoom: DEFAULT_ZOOM, background: DEFAULT_BACKGROUND });
   addZoomControl(node, slot);
 }
 
@@ -168,7 +196,7 @@ function heroSection(label: string, html: string): HTMLElement {
   return sec;
 }
 function mountHero(viz: HTMLElement, v: Viz): void {
-  const slot = register(viz, v);
+  const slot = register(viz, { ...v, zoom: DEFAULT_ZOOM, background: DEFAULT_BACKGROUND });
   addZoomControl(viz, slot);
 }
 
@@ -218,6 +246,106 @@ hs = heroSection('Hero 6 · duo', `
 mountHero(hs.querySelector('[data-h="6a"]')!, { variant: 'interferencia', palette: P.violet, background: BRAND, zoom: 2.0 });
 mountHero(hs.querySelector('[data-h="6b"]')!, { variant: 'pliegues', palette: P.warm, background: DARK, zoom: 1.8 });
 
+hs = heroSection('Hero 7 · banner (tubo)', `
+  <div class="h-banner">
+    <div class="viz" data-h="7"></div>
+    <div class="overlay"><h2>Rolled, gathered, in motion</h2><div class="sub">Line fields that fold and fuse with themselves</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="7"]')!, { variant: 'tubo', palette: P.teal, background: PURPLE, zoom: 1.6 });
+
+hs = heroSection('Hero 8 · centrado (embudo)', `
+  <div class="h-centered">
+    <div class="viz" data-h="8"></div>
+    <div class="overlay"><h2>Everything flows to one point</h2><div class="sub">A vortex of governed, structured intelligence.</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="8"]')!, { variant: 'embudo', palette: P.violet, background: PURPLE, zoom: 1.5 });
+
+hs = heroSection('Hero 9 · stat cover (hélice)', `
+  <div class="h-statcover">
+    <div class="viz" data-h="9"></div>
+    <div class="overlay"><div class="stat">3.2×</div><div class="sub">faster delivery with coiled, composable platforms</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="9"]')!, { variant: 'helice', palette: P.cool, background: DARK, zoom: 1.5 });
+
+hs = heroSection('Hero 10 · duo (cinta · duna)', `
+  <div class="h-duo">
+    <div class="half"><div class="viz" data-h="10a"></div><div class="lab">Ribbon</div></div>
+    <div class="half"><div class="viz" data-h="10b"></div><div class="lab">Dune</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="10a"]')!, { variant: 'cinta', palette: P.warm, background: DARK, zoom: 1.6 });
+mountHero(hs.querySelector('[data-h="10b"]')!, { variant: 'duna', palette: P.teal, background: BRAND, zoom: 1.5 });
+
+hs = heroSection('Hero 11 · tríptico', `
+  <div class="h-tript">
+    <div class="col"><div class="viz" data-h="11a"></div></div>
+    <div class="col"><div class="viz" data-h="11b"></div></div>
+    <div class="col"><div class="viz" data-h="11c"></div></div>
+    <div class="titleband"><h2>A visual language for systems in motion</h2><div class="sub">Quilla · Helicoide · Voluta</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="11a"]')!, { variant: 'quilla', palette: P.teal, background: PURPLE, zoom: 1.4 });
+mountHero(hs.querySelector('[data-h="11b"]')!, { variant: 'helicoide', palette: P.violet, background: PURPLE, zoom: 1.4 });
+mountHero(hs.querySelector('[data-h="11c"]')!, { variant: 'voluta', palette: P.cool, background: PURPLE, zoom: 1.4 });
+
+hs = heroSection('Hero 12 · centrado (helicoide)', `
+  <div class="h-centered">
+    <div class="viz" data-h="12"></div>
+    <div class="overlay"><h2>Where structure meets intelligence</h2><div class="sub">Crossing fields of governed data, in constant recomposition.</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="12"]')!, { variant: 'helicoide', palette: P.violet, background: DARK, zoom: 1.5 });
+
+hs = heroSection('Hero 13 · split + stats (quilla)', `
+  <div class="h-split">
+    <div class="viz" data-h="13"></div>
+    <div class="panel">
+      <div class="block purple"><div class="stat">28+</div><div class="sub">enterprise platforms shipped this year</div></div>
+      <div class="block light"><div class="stat">9</div><div class="sub">countries, one governed architecture</div></div>
+    </div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="13"]')!, { variant: 'quilla', palette: P.teal, background: PURPLE, zoom: 1.5 });
+
+hs = heroSection('Hero 14 · stat cover (voluta)', `
+  <div class="h-statcover">
+    <div class="viz" data-h="14"></div>
+    <div class="overlay"><div class="stat">∞</div><div class="sub">composable building blocks, endlessly recombined</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="14"]')!, { variant: 'voluta', palette: P.warm, background: DARK, zoom: 1.5 });
+
+hs = heroSection('Hero 15 · banner (celosía)', `
+  <div class="h-banner">
+    <div class="viz" data-h="15"></div>
+    <div class="overlay"><h2>Layered, woven, in motion</h2><div class="sub">Generative line systems for the Xebia brand</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="15"]')!, { variant: 'celosia', palette: P.violet, background: BRAND, zoom: 1.4 });
+
+hs = heroSection('Hero 16 · banner (quilla)', `
+  <div class="h-banner">
+    <div class="viz" data-h="16"></div>
+    <div class="overlay"><h2>Engineered, not decorated</h2><div class="sub">Ruled surfaces that twist and fuse</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="16"]')!, { variant: 'quilla', palette: P.teal, background: PURPLE, zoom: 1.5 });
+
+hs = heroSection('Hero 17 · centrado (celosía)', `
+  <div class="h-centered">
+    <div class="viz" data-h="17"></div>
+    <div class="overlay"><h2>Layers that recompose</h2><div class="sub">Shearing lattices for adaptive systems.</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="17"]')!, { variant: 'celosia', palette: P.violet, background: DARK, zoom: 1.4 });
+
+hs = heroSection('Hero 18 · stat cover (tubo)', `
+  <div class="h-statcover">
+    <div class="viz" data-h="18"></div>
+    <div class="overlay"><div class="stat">100%</div><div class="sub">generated in the browser — no assets, no video</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="18"]')!, { variant: 'tubo', palette: P.cool, background: DARK, zoom: 1.5 });
+
+hs = heroSection('Hero 19 · duo (cono · embudo)', `
+  <div class="h-duo">
+    <div class="half"><div class="viz" data-h="19a"></div><div class="lab">Cone</div></div>
+    <div class="half"><div class="viz" data-h="19b"></div><div class="lab">Funnel</div></div>
+  </div>`);
+mountHero(hs.querySelector('[data-h="19a"]')!, { variant: 'cono', palette: P.warm, background: BRAND, zoom: 1.5 });
+mountHero(hs.querySelector('[data-h="19b"]')!, { variant: 'embudo', palette: P.violet, background: PURPLE, zoom: 1.5 });
+
 // Selector de fondo global (aplica a todas las animaciones, vivas o futuras).
 const bgbar = document.getElementById('cardbg')!;
 const blabel = document.createElement('span');
@@ -226,13 +354,17 @@ blabel.textContent = 'Fondo de las animaciones';
 bgbar.appendChild(blabel);
 BACKGROUNDS.forEach((b) => {
   const dot = document.createElement('span');
-  dot.className = 'bgdot';
+  dot.className = 'bgdot' + (b.name === 'Claro' ? ' active' : '');
   dot.title = b.name;
   dot.style.background = b.css;
   dot.onclick = () => {
     slots.forEach((s) => { s.opts.background = b.bg; s.field?.setOptions({ background: b.bg }); });
+    document.body.classList.toggle('cards-light', !!b.light);
     [...bgbar.querySelectorAll('.bgdot')].forEach((c) => c.classList.remove('active'));
     dot.classList.add('active');
   };
   bgbar.appendChild(dot);
 });
+
+// Arranca en modo claro (fondo por defecto = Claro).
+document.body.classList.add('cards-light');

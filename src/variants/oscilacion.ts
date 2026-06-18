@@ -7,9 +7,10 @@ export const oscilacion: Variant = {
     const N = lineCount ?? 150;
     const { mx, my } = auto(t);
     const cx = W * 0.42, cy = H * 0.5;
-    const r0 = 30 + 20 * Math.sin(t * 0.0006);
+    // foco abierto (círculo grande) → sin punto de luz por acumulación aditiva
+    const r0 = Math.min(W, H) * (0.16 + 0.04 * Math.sin(t * 0.0006));
     const r1 = Math.min(W, H) * 0.46;
-    const a = 3 + mx * 4;
+    const a = 2 + mx * 2;
     const phase = t * 0.00035;
     const twist = (my - 0.5) * 2.2;
     const out: Polyline[] = [];

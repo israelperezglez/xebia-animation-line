@@ -8,10 +8,8 @@ import { polylinesToSegments } from './lineGeometry';
 const VERT = `
 attribute vec2 position;
 attribute float s;
-uniform float uZoom;
-uniform vec2 uPan;
 varying float vS;
-void main() { vS = s; gl_Position = vec4(position * uZoom + uPan, 0.0, 1.0); }
+void main() { vS = s; gl_Position = vec4(position, 0.0, 1.0); }
 `;
 
 const FRAG = `
@@ -25,31 +23,64 @@ void main() {
 }
 `;
 
+const BG_VERT = `
+attribute vec2 position;
+varying vec2 vUv;
+void main() { vUv = position * 0.5 + 0.5; gl_Position = vec4(position, 0.0, 1.0); }
+`;
+
+const BG_FRAG = `
+precision highp float;
+uniform vec3 uFrom;
+uniform vec3 uTo;
+uniform float uAngle;
+varying vec2 vUv;
+void main() {
+  vec2 dir = vec2(cos(uAngle), sin(uAngle));
+  float tg = clamp(dot(vUv - 0.5, dir) + 0.5, 0.0, 1.0);
+  gl_FragColor = vec4(mix(uFrom, uTo, tg), 1.0);
+}
+`;
+
 export class Renderer {
   private gl: OGLRenderingContext;
   private renderer: OGLRenderer;
   private program: Program;
+  private bgProgram: Program;
   private gradient: Texture;
   private mesh: Mesh;
+  private bgMesh: Mesh;
   private geometry: Geometry;
-  private bg: ResolvedBackground = { clear: [0, 0, 0, 1], blend: 'add' };
+  private bg: ResolvedBackground = { draw: true, from: [0, 0, 0], to: [0, 0, 0], angle: 0, blend: 'add', clearAlpha: 1 };
   private ro?: ResizeObserver;
   private W = 1;
   private H = 1;
+  private zoom = 1;
+  private pan = { x: 0, y: 0 };
+  private thickness = 1.7;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.renderer = new OGLRenderer({ canvas, alpha: true, antialias: true, dpr: Math.min(devicePixelRatio || 1, 2) });
+    this.renderer.autoClear = false;
     this.gl = this.renderer.gl;
+
     this.gradient = new Texture(this.gl, { image: buildGradientPixels(['#000', '#fff']), width: 256, height: 1, generateMipmaps: false });
     this.program = new Program(this.gl, {
-      vertex: VERT, fragment: FRAG, transparent: true,
-      uniforms: { uGradient: { value: this.gradient }, uAlpha: { value: 0.85 }, uZoom: { value: 1 }, uPan: { value: [0, 0] } },
+      vertex: VERT, fragment: FRAG, transparent: true, cullFace: false, depthTest: false,
+      uniforms: { uGradient: { value: this.gradient }, uAlpha: { value: 0.85 } },
     });
     this.geometry = new Geometry(this.gl, {
       position: { size: 2, data: new Float32Array() },
       s: { size: 1, data: new Float32Array() },
     });
-    this.mesh = new Mesh(this.gl, { geometry: this.geometry, program: this.program, mode: this.gl.LINES });
+    this.mesh = new Mesh(this.gl, { geometry: this.geometry, program: this.program, mode: this.gl.TRIANGLES });
+
+    this.bgProgram = new Program(this.gl, {
+      vertex: BG_VERT, fragment: BG_FRAG, cullFace: false, depthTest: false,
+      uniforms: { uFrom: { value: [0, 0, 0] }, uTo: { value: [0, 0, 0] }, uAngle: { value: 0 } },
+    });
+    const bgGeo = new Geometry(this.gl, { position: { size: 2, data: new Float32Array([-1, -1, 3, -1, -1, 3]) } });
+    this.bgMesh = new Mesh(this.gl, { geometry: bgGeo, program: this.bgProgram, mode: this.gl.TRIANGLES });
 
     this.canvas.style.display = 'block';
     this.resize();
@@ -66,26 +97,26 @@ export class Renderer {
 
   setBackground(bg: ResolvedBackground): void {
     this.bg = bg;
+    const gl = this.gl;
     this.program.uniforms.uAlpha.value = bg.blend === 'add' ? 0.85 : 1.0;
+    if (bg.blend === 'multiply') this.program.setBlendFunc(gl.DST_COLOR, gl.ONE_MINUS_SRC_ALPHA);
+    else if (bg.blend === 'normal') this.program.setBlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    else this.program.setBlendFunc(gl.SRC_ALPHA, gl.ONE); // add
+    this.bgProgram.uniforms.uFrom.value = bg.from;
+    this.bgProgram.uniforms.uTo.value = bg.to;
+    this.bgProgram.uniforms.uAngle.value = bg.angle;
   }
 
-  setZoom(zoom: number): void {
-    this.program.uniforms.uZoom.value = zoom;
-  }
-
-  setPan(x: number, y: number): void {
-    this.program.uniforms.uPan.value = [x, y];
-  }
+  setZoom(zoom: number): void { this.zoom = zoom; }
+  setPan(x: number, y: number): void { this.pan = { x, y }; }
+  setThickness(t: number): void { this.thickness = t; }
 
   resize(): void {
-    // Measure the container, not the canvas: OGL writes explicit px into the
-    // canvas inline style, which would otherwise defeat the 100% fill.
     const target = this.canvas.parentElement ?? this.canvas;
     const rect = target.getBoundingClientRect();
     this.W = Math.max(1, Math.round(rect.width));
     this.H = Math.max(1, Math.round(rect.height));
     this.renderer.setSize(this.W, this.H);
-    // Re-assert fill so the canvas tracks its container instead of OGL's px.
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
   }
@@ -96,7 +127,7 @@ export class Renderer {
 
   draw(polylines: Polyline[]): void {
     const { W, H } = this.size;
-    const seg = polylinesToSegments(polylines, W, H);
+    const seg = polylinesToSegments(polylines, W, H, { zoom: this.zoom, pan: this.pan, thickness: this.thickness });
     this.geometry = new Geometry(this.gl, {
       position: { size: 2, data: seg.position },
       s: { size: 1, data: seg.s },
@@ -104,12 +135,9 @@ export class Renderer {
     this.mesh.geometry = this.geometry;
 
     const gl = this.gl;
-    gl.clearColor(...this.bg.clear);
+    gl.clearColor(this.bg.from[0], this.bg.from[1], this.bg.from[2], this.bg.clearAlpha);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.enable(gl.BLEND);
-    if (this.bg.blend === 'add') gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    else gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
+    if (this.bg.draw) this.renderer.render({ scene: this.bgMesh });
     this.renderer.render({ scene: this.mesh });
   }
 
