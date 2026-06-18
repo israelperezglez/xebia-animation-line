@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 // base must match the repo name for project Pages (https://<user>.github.io/<repo>/).
 export default defineConfig({
   root: 'demo',
-  base: '/animation-line/',
+  base: './', // relativa: funciona tanto en project Pages (/repo/) como en Pages interno (raíz)
   build: {
     outDir: '../site',
     emptyOutDir: true,
