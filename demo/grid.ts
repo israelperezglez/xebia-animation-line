@@ -19,6 +19,8 @@ const BACKGROUNDS: { name: string; bg: Background; css: string }[] = [
   { name: 'Claro', bg: { type: 'solid', color: '#eef2f7' }, css: '#eef2f7' },
 ];
 
+const DEFAULT_BG = 2; // "Marca" por defecto
+
 const grid = document.getElementById('grid')!;
 const fields: LineField[] = [];
 
@@ -43,7 +45,7 @@ VARIANT_NAMES.forEach((name, i) => {
   const field = new LineField(stage, {
     variant: name,
     palette: PALETTES[startIdx],
-    background: BACKGROUNDS[0].bg,
+    background: BACKGROUNDS[DEFAULT_BG].bg,
   });
   fields.push(field);
 
@@ -69,7 +71,7 @@ blabel.textContent = 'Fondo';
 bgbar.appendChild(blabel);
 BACKGROUNDS.forEach((b, idx) => {
   const dot = document.createElement('span');
-  dot.className = 'bgdot' + (idx === 0 ? ' active' : '');
+  dot.className = 'bgdot' + (idx === DEFAULT_BG ? ' active' : '');
   dot.title = b.name;
   dot.style.background = b.css;
   dot.onclick = () => {
