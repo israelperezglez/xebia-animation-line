@@ -16,6 +16,7 @@ export interface LineFieldOptions {
   background: Background;
   speed?: number;               // default 0.6 (modo suave); animación autónoma, sin scroll
   lineCount?: number;           // optional density override
+  zoom?: number;                // default 1; >1 = close-up (amplía y recorta bordes)
 }
 
 /** Pixel-space polyline: pts = [x0,y0, x1,y1, ...] in [0,W]×[0,H], y-down. */

@@ -13,7 +13,7 @@ const P = {
   cool: ['#7be0c0', '#4aa3ff', '#0d2b4a'],
 };
 
-interface Viz { variant: VName; palette: string[]; background: Background; }
+interface Viz { variant: VName; palette: string[]; background: Background; zoom: number; }
 
 type Card =
   | { type: 'split'; label: string; title: string; desc: string; cta: string; viz: Viz }
@@ -27,13 +27,13 @@ const CARDS: Card[] = [
     title: 'Designing APIs That Developers Actually Love',
     desc: 'Real-world insights from data mesh implementations.',
     cta: 'Read More',
-    viz: { variant: 'malla', palette: P.teal, background: DARK },
+    viz: { variant: 'malla', palette: P.teal, background: DARK, zoom: 1.8 },
   },
   {
     type: 'quote',
     quote: 'Xebia didn’t sell us a deck. They delivered a governed platform in weeks.',
     author: 'CDO · European Bank',
-    viz: { variant: 'entrelazado', palette: P.violet, background: BRAND },
+    viz: { variant: 'entrelazado', palette: P.violet, background: BRAND, zoom: 1.6 },
   },
   {
     type: 'stats',
@@ -44,36 +44,41 @@ const CARDS: Card[] = [
       { n: '23', l: 'Skill Badges Earned' },
       { n: '1', l: 'Global Challenge' },
     ],
-    viz: { variant: 'pliegues', palette: P.violet, background: BRAND },
+    viz: { variant: 'pliegues', palette: P.violet, background: BRAND, zoom: 1.5 },
   },
   {
     type: 'stacked', label: 'Article',
     title: 'Scaling Platforms Without Scaling Chaos',
     desc: 'Patterns for governed, self-service infrastructure at enterprise scale.',
     cta: 'Read More',
-    viz: { variant: 'cubo', palette: P.cool, background: DARK },
+    viz: { variant: 'cubo', palette: P.cool, background: DARK, zoom: 1.5 },
   },
   {
     type: 'split', label: 'Insight',
     title: 'Linear Oscillations in Brand Systems',
     desc: 'How motion makes invisible systems visible.',
     cta: 'Read More',
-    viz: { variant: 'oscilacion', palette: P.teal, background: DARK },
+    viz: { variant: 'oscilacion', palette: P.teal, background: DARK, zoom: 1.7 },
   },
   {
     type: 'stacked', label: 'Article',
     title: 'Flow, Interference & Emergent Structure',
     desc: 'Generative line fields as a visual language for data in motion.',
     cta: 'Read More',
-    viz: { variant: 'flujo', palette: P.warm, background: DARK },
+    viz: { variant: 'flujo', palette: P.warm, background: DARK, zoom: 1.6 },
   },
 ];
 
-const root = document.getElementById('cards')!;
+// Fondos seleccionables (override global de la animación de todas las cards).
+const BACKGROUNDS: { name: string; bg: Background; css: string }[] = [
+  { name: 'Oscuro', bg: DARK, css: 'linear-gradient(135deg,#06101a,#0a1b2b)' },
+  { name: 'Marca', bg: BRAND, css: 'linear-gradient(135deg,#0b1f3a,#3a1d5c)' },
+  { name: 'Negro', bg: { type: 'solid', color: '#000000' }, css: '#000000' },
+  { name: 'Claro', bg: { type: 'solid', color: '#eef2f7' }, css: '#eef2f7' },
+];
 
-function logo(): string {
-  return '<span class="brand"><b>X</b>ebia</span>';
-}
+const root = document.getElementById('cards')!;
+const fields: LineField[] = [];
 
 function render(card: Card): HTMLElement {
   const el = document.createElement('div');
@@ -81,7 +86,7 @@ function render(card: Card): HTMLElement {
     el.innerHTML = `
       <article class="xcard split">
         <div class="text">
-          <div class="top"><span class="kicker">${card.label}</span>${logo()}</div>
+          <div class="top"><span class="kicker">${card.label}</span></div>
           <h2>${card.title}</h2>
           <div class="bottom"><p class="desc">${card.desc}</p><button class="pill">${card.cta}</button></div>
         </div>
@@ -92,7 +97,7 @@ function render(card: Card): HTMLElement {
     el.innerHTML = `
       <article class="xcard stacked">
         <div class="text">
-          <div class="top"><span class="kicker">${card.label}</span>${logo()}</div>
+          <div class="top"><span class="kicker">${card.label}</span></div>
           <h2>${card.title}</h2>
           <p class="desc">${card.desc}</p>
         </div>
@@ -103,7 +108,6 @@ function render(card: Card): HTMLElement {
     el.innerHTML = `
       <article class="xcard quote">
         <div class="text">
-          <div class="top">${logo()}</div>
           <h2>${card.quote}</h2>
           <div class="bottom"><p class="author">${card.author}</p></div>
         </div>
@@ -117,7 +121,7 @@ function render(card: Card): HTMLElement {
     el.innerHTML = `
       <article class="xcard statscard">
         <div class="text">
-          <div class="top"><span class="kicker">Case study</span>${logo()}</div>
+          <div class="top"><span class="kicker">Case study</span></div>
           <h2>${card.title}</h2>
           <p class="sub">${card.sub}</p>
         </div>
@@ -131,9 +135,29 @@ for (const card of CARDS) {
   const node = render(card);
   root.appendChild(node);
   const viz = node.querySelector<HTMLElement>('.viz')!;
-  new LineField(viz, {
+  fields.push(new LineField(viz, {
     variant: card.viz.variant,
     palette: card.viz.palette,
     background: card.viz.background,
-  });
+    zoom: card.viz.zoom,
+  }));
 }
+
+// Selector de fondo global para las animaciones de las cards.
+const bgbar = document.getElementById('cardbg')!;
+const blabel = document.createElement('span');
+blabel.className = 'blabel';
+blabel.textContent = 'Fondo de las animaciones';
+bgbar.appendChild(blabel);
+BACKGROUNDS.forEach((b) => {
+  const dot = document.createElement('span');
+  dot.className = 'bgdot';
+  dot.title = b.name;
+  dot.style.background = b.css;
+  dot.onclick = () => {
+    fields.forEach((f) => f.setOptions({ background: b.bg }));
+    [...bgbar.querySelectorAll('.bgdot')].forEach((c) => c.classList.remove('active'));
+    dot.classList.add('active');
+  };
+  bgbar.appendChild(dot);
+});

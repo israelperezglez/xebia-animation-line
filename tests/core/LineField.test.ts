@@ -3,7 +3,7 @@ import { LineField } from '../../src/core/LineField';
 
 function fakeRenderer() {
   return {
-    setPalette: vi.fn(), setBackground: vi.fn(), resize: vi.fn(),
+    setPalette: vi.fn(), setBackground: vi.fn(), setZoom: vi.fn(), resize: vi.fn(),
     size: { W: 800, H: 600 }, draw: vi.fn(), destroy: vi.fn(),
   };
 }

@@ -8,8 +8,9 @@ import { polylinesToSegments } from './lineGeometry';
 const VERT = `
 attribute vec2 position;
 attribute float s;
+uniform float uZoom;
 varying float vS;
-void main() { vS = s; gl_Position = vec4(position, 0.0, 1.0); }
+void main() { vS = s; gl_Position = vec4(position * uZoom, 0.0, 1.0); }
 `;
 
 const FRAG = `
@@ -41,7 +42,7 @@ export class Renderer {
     this.gradient = new Texture(this.gl, { image: buildGradientPixels(['#000', '#fff']), width: 256, height: 1, generateMipmaps: false });
     this.program = new Program(this.gl, {
       vertex: VERT, fragment: FRAG, transparent: true,
-      uniforms: { uGradient: { value: this.gradient }, uAlpha: { value: 0.85 } },
+      uniforms: { uGradient: { value: this.gradient }, uAlpha: { value: 0.85 }, uZoom: { value: 1 } },
     });
     this.geometry = new Geometry(this.gl, {
       position: { size: 2, data: new Float32Array() },
@@ -65,6 +66,10 @@ export class Renderer {
   setBackground(bg: ResolvedBackground): void {
     this.bg = bg;
     this.program.uniforms.uAlpha.value = bg.blend === 'add' ? 0.85 : 1.0;
+  }
+
+  setZoom(zoom: number): void {
+    this.program.uniforms.uZoom.value = zoom;
   }
 
   resize(): void {
