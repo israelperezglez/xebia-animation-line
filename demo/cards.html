@@ -10,6 +10,11 @@
   header{max-width:1200px;margin:0 auto;padding:26px 24px 8px;display:flex;justify-content:space-between;align-items:center;color:#e8e8ee;}
   header h1{font-size:16px;font-weight:700;letter-spacing:-.01em;}
   header a{color:#cfd6e6;text-decoration:none;font-size:13px;border:1px solid #ffffff33;padding:7px 12px;border-radius:99px;}
+  .nav{display:flex;gap:6px;align-items:center;padding:12px 20px;border-bottom:1px solid #ffffff14;}
+  .nav a{color:#cfd6e6;text-decoration:none;font-size:13px;padding:6px 12px;border-radius:99px;border:1px solid #ffffff22;}
+  .nav a.home{margin-right:auto;font-weight:700;border:none;}
+  .nav a.active{background:#fff;color:#0a1a24;border-color:#fff;}
+  body.cards-light .nav{border-color:#00000014;} body.cards-light .nav a{color:#333;border-color:#00000022;} body.cards-light .nav a.active{background:#111;color:#fff;}
   #cards{max-width:1200px;margin:0 auto;padding:16px 24px;display:grid;grid-template-columns:repeat(2,1fr);gap:24px;}
 
   .xcard{background:#fff;border-radius:0;overflow:hidden;position:relative;height:520px;display:flex;box-shadow:0 18px 50px #0007;}
@@ -168,10 +173,12 @@
 </style>
 </head>
 <body>
-  <header>
-    <h1>Xebia · cards con animación</h1>
-    <a href="./">← ver grid</a>
-  </header>
+  <nav class="nav">
+    <a class="home" href="./">xebia-animation-line</a>
+    <a href="./lineas.html">Líneas</a>
+    <a href="./puntos.html">Puntos</a>
+    <a class="active" href="./cards.html">Cards &amp; Heroes</a>
+  </nav>
   <div class="bgbar" id="cardbg"></div>
   <div id="cards"></div>
 

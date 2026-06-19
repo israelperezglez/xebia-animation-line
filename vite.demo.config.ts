@@ -10,8 +10,11 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        index: resolve(__dirname, 'demo/index.html'),  // grid
-        cards: resolve(__dirname, 'demo/cards.html'),   // cards + heroes
+        index: resolve(__dirname, 'demo/index.html'),    // hub
+        lineas: resolve(__dirname, 'demo/lineas.html'),   // grid de líneas
+        cards: resolve(__dirname, 'demo/cards.html'),     // cards + heroes (líneas)
+        puntos: resolve(__dirname, 'demo/puntos.html'),   // grid de puntos
+        'puntos-cards': resolve(__dirname, 'demo/puntos-cards.html'), // cards + heroes (puntos)
       },
     },
   },
