@@ -346,6 +346,26 @@ hs = heroSection('Hero 19 · duo (cono · embudo)', `
 mountHero(hs.querySelector('[data-h="19a"]')!, { variant: 'cono', palette: P.warm, background: BRAND, zoom: 1.5 });
 mountHero(hs.querySelector('[data-h="19b"]')!, { variant: 'embudo', palette: P.violet, background: PURPLE, zoom: 1.5 });
 
+// Hero con imagen de fondo y animación de líneas encima (transparente)
+const imgSec = heroSection('Hero · imagen de fondo', `
+  <div class="h-image">
+    <div class="viz" data-h="imgbg"></div>
+    <div class="overlay"><h2>Líneas sobre imagen</h2><div class="sub">La animación se compone sobre la foto</div></div>
+    <div class="posctl"></div>
+  </div>`);
+{
+  const viz = imgSec.querySelector<HTMLElement>('[data-h="imgbg"]')!;
+  const slot = register(viz, { variant: 'oscilacion', palette: P.teal, background: { type: 'transparent' }, zoom: 1.4 });
+  addZoomControl(viz, slot);
+  const hImg = imgSec.querySelector<HTMLElement>('.h-image')!;
+  const pc = imgSec.querySelector<HTMLElement>('.posctl')!;
+  (['center', 'top', 'bottom', 'left', 'right'] as const).forEach((pos, idx) => {
+    const b = document.createElement('button'); b.textContent = pos; if (idx === 0) b.classList.add('active');
+    b.onclick = () => { hImg.style.backgroundPosition = pos; [...pc.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); };
+    pc.appendChild(b);
+  });
+}
+
 // Selector de paleta global (gradiente de las líneas).
 const PALETTES = [
   ['#3fd6a0', '#5ad1ff', '#9b8cff'], ['#ff9bc4', '#b18cff', '#5ad1ff'], ['#ffd27a', '#ff8f6b', '#c96bff'],

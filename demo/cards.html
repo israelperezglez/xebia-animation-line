@@ -172,6 +172,15 @@
   .h-tript .titleband h2{font-size:30px;}
   .h-tript .titleband .sub{font-size:15px;opacity:.85;margin-top:8px;}
 
+  /* hero con imagen de fondo + animación encima */
+  .h-image{position:relative;height:440px;overflow:hidden;background-image:url(./bg-hero.png);background-size:cover;background-position:center;}
+  .h-image .viz{position:absolute;inset:0;background:transparent;}
+  .h-image .overlay{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:flex-end;padding:40px;color:#fff;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,.5));}
+  .h-image h2{font-size:38px;max-width:18ch;} .h-image .sub{font-size:16px;opacity:.85;margin-top:12px;}
+  .posctl{position:absolute;top:10px;left:10px;z-index:6;display:flex;gap:4px;background:#0009;border-radius:99px;padding:4px;backdrop-filter:blur(6px);}
+  .posctl button{border:none;background:transparent;color:#fff;font-size:11px;padding:4px 9px;border-radius:99px;cursor:pointer;font-family:inherit;}
+  .posctl button.active{background:#fff;color:#0a1a24;}
+
   @media (max-width:880px){ #cards{grid-template-columns:1fr;} .h-split,.h-textleft,.h-duo{flex-direction:column;height:auto;} .h-split .viz,.h-textleft .viz{height:300px;} .h-duo .half{height:260px;} }
 </style>
 </head>

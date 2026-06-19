@@ -55,15 +55,15 @@ const CARDS: Card[] = [
 
 // ---- motor de puntos (Canvas) ----
 let curBg: PBg = BACKGROUNDS[3]; // Claro por defecto
-interface Slot { ctx: CanvasRenderingContext2D; cv: HTMLCanvasElement; fn: (c: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) => void; palette: string[]; zoom: number; w: number; h: number; vis: boolean; }
+interface Slot { ctx: CanvasRenderingContext2D; cv: HTMLCanvasElement; fn: (c: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) => void; palette: string[]; zoom: number; w: number; h: number; vis: boolean; transparent: boolean; }
 const slots: Slot[] = [];
 const DPR = Math.min(devicePixelRatio || 1, 2);
 
-function mount(viz: HTMLElement, variant: string, palette: string[]): void {
+function mount(viz: HTMLElement, variant: string, palette: string[], transparent = false): void {
   const key = L2P[variant] ?? 'pondas';
   const cv = document.createElement('canvas');
   viz.appendChild(cv);
-  const slot: Slot = { ctx: cv.getContext('2d')!, cv, fn: POINTS[key], palette, zoom: KEY_ZOOM[key] ?? 1, w: 1, h: 1, vis: true };
+  const slot: Slot = { ctx: cv.getContext('2d')!, cv, fn: POINTS[key], palette, zoom: KEY_ZOOM[key] ?? 1, w: 1, h: 1, vis: true, transparent };
   slots.push(slot);
   // control de zoom
   let z = slot.zoom;
@@ -127,6 +127,18 @@ mount(hs.querySelector('[data-h="14"]')!, 'voluta', P.warm);
 hs = heroSection('Hero 15 · banner', `<div class="h-banner"><div class="viz" data-h="15"></div><div class="overlay"><h2>Layered, woven, in motion</h2><div class="sub">Generative point systems for the Xebia brand</div></div></div>`);
 mount(hs.querySelector('[data-h="15"]')!, 'celosia', P.violet);
 
+const imgSec = heroSection('Hero · imagen de fondo', `<div class="h-image"><div class="viz" data-h="imgbg"></div><div class="overlay"><h2>Puntos sobre imagen</h2><div class="sub">La animación se compone sobre la foto</div></div><div class="posctl"></div></div>`);
+mount(imgSec.querySelector<HTMLElement>('[data-h="imgbg"]')!, 'flujo', P.teal, true);
+{
+  const hImg = imgSec.querySelector<HTMLElement>('.h-image')!;
+  const pc = imgSec.querySelector<HTMLElement>('.posctl')!;
+  (['center', 'top', 'bottom', 'left', 'right'] as const).forEach((pos, idx) => {
+    const b = document.createElement('button'); b.textContent = pos; if (idx === 0) b.classList.add('active');
+    b.onclick = () => { hImg.style.backgroundPosition = pos; [...pc.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); };
+    pc.appendChild(b);
+  });
+}
+
 // ---- loop + selectores ----
 function fit(): void { for (const s of slots) { const r = s.cv.getBoundingClientRect(); s.w = r.width; s.h = r.height; s.cv.width = r.width * DPR; s.cv.height = r.height * DPR; s.ctx.setTransform(DPR, 0, 0, DPR, 0, 0); } }
 addEventListener('resize', fit);
@@ -137,7 +149,7 @@ function frame(t: number): void {
   for (const s of slots) {
     if (!s.vis) continue;
     const ctx = s.ctx;
-    paintBg(ctx, s.w, s.h, curBg);
+    if (s.transparent) ctx.clearRect(0, 0, s.w, s.h); else paintBg(ctx, s.w, s.h, curBg);
     const col = makeCol(s.palette);
     if (s.zoom !== 1) { ctx.save(); ctx.translate(s.w / 2, s.h / 2); ctx.scale(s.zoom, s.zoom); ctx.translate(-s.w / 2, -s.h / 2); }
     s.fn(ctx, s.w, s.h, ts, col);
