@@ -127,17 +127,26 @@ mount(hs.querySelector('[data-h="14"]')!, 'voluta', P.warm);
 hs = heroSection('Hero 15 · banner', `<div class="h-banner"><div class="viz" data-h="15"></div><div class="overlay"><h2>Layered, woven, in motion</h2><div class="sub">Generative point systems for the Xebia brand</div></div></div>`);
 mount(hs.querySelector('[data-h="15"]')!, 'celosia', P.violet);
 
-const imgSec = heroSection('Hero · imagen de fondo', `<div class="h-image"><div class="viz" data-h="imgbg"></div><div class="overlay"><h2>Puntos sobre imagen</h2><div class="sub">La animación se compone sobre la foto</div></div><div class="posctl"></div></div>`);
-mount(imgSec.querySelector<HTMLElement>('[data-h="imgbg"]')!, 'flujo', P.teal, true);
-{
-  const hImg = imgSec.querySelector<HTMLElement>('.h-image')!;
-  const pc = imgSec.querySelector<HTMLElement>('.posctl')!;
+// Heroes con imagen de fondo y puntos encima (transparente, en blanco)
+const topRoot = document.getElementById('tophero')!;
+const WHITE = ['#ffffff', '#eaf1ff', '#ffffff'];
+function imageHero(label: string, title: string, variant: string): void {
+  const sec = document.createElement('div'); sec.className = 'hero-sec';
+  sec.innerHTML = `<div class="hlabel">${label}</div><div class="h-image"><div class="viz"></div><div class="overlay"><h2>${title}</h2></div><div class="posctl"></div></div>`;
+  topRoot.appendChild(sec);
+  mount(sec.querySelector<HTMLElement>('.viz')!, variant, WHITE, true);
+  const hImg = sec.querySelector<HTMLElement>('.h-image')!;
+  const pc = sec.querySelector<HTMLElement>('.posctl')!;
   (['center', 'top', 'bottom', 'left', 'right'] as const).forEach((pos, idx) => {
     const b = document.createElement('button'); b.textContent = pos; if (idx === 0) b.classList.add('active');
     b.onclick = () => { hImg.style.backgroundPosition = pos; [...pc.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); };
     pc.appendChild(b);
   });
 }
+imageHero('Imagen + onda', 'Puntos sobre imagen', 'flujo');
+imageHero('Imagen + datos', 'Datos sobre imagen', 'rejilla');
+imageHero('Imagen + fusión', 'Fusión sobre imagen', 'oscilacion');
+imageHero('Imagen + montañas', 'Montañas sobre imagen', 'pliegues');
 
 // ---- loop + selectores ----
 function fit(): void { for (const s of slots) { const r = s.cv.getBoundingClientRect(); s.w = r.width; s.h = r.height; s.cv.width = r.width * DPR; s.cv.height = r.height * DPR; s.ctx.setTransform(DPR, 0, 0, DPR, 0, 0); } }

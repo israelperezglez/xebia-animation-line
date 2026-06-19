@@ -9,6 +9,7 @@ const PALETTES = [
   ['#7be0c0', '#4aa3ff', '#0d2b4a'],
   ['#a0f0c8', '#ffe08a', '#ff8f6b'],
   ['#8be9ff', '#c9a0ff', '#ff9bd6'],
+  ['#ffffff', '#eaf1ff', '#ffffff'],
 ];
 const BACKGROUNDS: { name: string; bg: Background; css: string }[] = [
   { name: 'Oscuro', bg: { type: 'gradient', from: '#06101a', to: '#0a1b2b' }, css: 'linear-gradient(135deg,#06101a,#0a1b2b)' },

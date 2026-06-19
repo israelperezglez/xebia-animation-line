@@ -9,6 +9,7 @@ export const PALETTES = [
   ['#7be0c0', '#4aa3ff', '#0d2b4a'],
   ['#a0f0c8', '#ffe08a', '#ff8f6b'],
   ['#8be9ff', '#c9a0ff', '#ff9bd6'],
+  ['#ffffff', '#eaf1ff', '#ffffff'],
 ];
 export interface PBg { name: string; from?: string; to?: string; solid?: string; css: string; light?: boolean; }
 export const BACKGROUNDS: PBg[] = [

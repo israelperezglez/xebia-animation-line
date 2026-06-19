@@ -346,30 +346,34 @@ hs = heroSection('Hero 19 · duo (cono · embudo)', `
 mountHero(hs.querySelector('[data-h="19a"]')!, { variant: 'cono', palette: P.warm, background: BRAND, zoom: 1.5 });
 mountHero(hs.querySelector('[data-h="19b"]')!, { variant: 'embudo', palette: P.violet, background: PURPLE, zoom: 1.5 });
 
-// Hero con imagen de fondo y animación de líneas encima (transparente)
-const imgSec = heroSection('Hero · imagen de fondo', `
-  <div class="h-image">
-    <div class="viz" data-h="imgbg"></div>
-    <div class="overlay"><h2>Líneas sobre imagen</h2><div class="sub">La animación se compone sobre la foto</div></div>
-    <div class="posctl"></div>
-  </div>`);
-{
-  const viz = imgSec.querySelector<HTMLElement>('[data-h="imgbg"]')!;
-  const slot = register(viz, { variant: 'oscilacion', palette: P.teal, background: { type: 'transparent' }, zoom: 1.4 });
+// Heroes con imagen de fondo y animación de líneas encima (transparente, en blanco)
+const topRoot = document.getElementById('tophero')!;
+const WHITE = ['#ffffff', '#eaf1ff', '#ffffff'];
+function imageHero(label: string, title: string, variant: VName): void {
+  const sec = document.createElement('div'); sec.className = 'hero-sec';
+  sec.innerHTML = `<div class="hlabel">${label}</div><div class="h-image"><div class="viz"></div><div class="overlay"><h2>${title}</h2></div><div class="posctl"></div></div>`;
+  topRoot.appendChild(sec);
+  const viz = sec.querySelector<HTMLElement>('.viz')!;
+  const slot = register(viz, { variant, palette: WHITE, background: { type: 'transparent' }, zoom: 1.4 });
   addZoomControl(viz, slot);
-  const hImg = imgSec.querySelector<HTMLElement>('.h-image')!;
-  const pc = imgSec.querySelector<HTMLElement>('.posctl')!;
+  const hImg = sec.querySelector<HTMLElement>('.h-image')!;
+  const pc = sec.querySelector<HTMLElement>('.posctl')!;
   (['center', 'top', 'bottom', 'left', 'right'] as const).forEach((pos, idx) => {
     const b = document.createElement('button'); b.textContent = pos; if (idx === 0) b.classList.add('active');
     b.onclick = () => { hImg.style.backgroundPosition = pos; [...pc.children].forEach((c) => c.classList.remove('active')); b.classList.add('active'); };
     pc.appendChild(b);
   });
 }
+imageHero('Imagen + oscilación', 'Líneas sobre imagen', 'oscilacion');
+imageHero('Imagen + malla', 'Estructura sobre imagen', 'malla');
+imageHero('Imagen + flujo', 'Flujo sobre imagen', 'flujo');
+imageHero('Imagen + entrelazado', 'Trama sobre imagen', 'entrelazado');
 
 // Selector de paleta global (gradiente de las líneas).
 const PALETTES = [
   ['#3fd6a0', '#5ad1ff', '#9b8cff'], ['#ff9bc4', '#b18cff', '#5ad1ff'], ['#ffd27a', '#ff8f6b', '#c96bff'],
   ['#7be0c0', '#4aa3ff', '#0d2b4a'], ['#a0f0c8', '#ffe08a', '#ff8f6b'], ['#8be9ff', '#c9a0ff', '#ff9bd6'],
+  ['#ffffff', '#eaf1ff', '#ffffff'],
 ];
 const palbar = document.getElementById('cardpal')!;
 PALETTES.forEach((p) => {
