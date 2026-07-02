@@ -549,76 +549,85 @@ function textMask(word: string, W: number, H: number): ImageData {
 const inMask = (m: ImageData, x: number, y: number) =>
   x >= 0 && y >= 0 && x < m.width && y < m.height && m.data[(((y | 0) * m.width) + (x | 0)) * 4 + 3] > 120;
 
-// Palabra en lineas: franjas horizontales onduladas recortadas por el texto (estilo "People")
-let wordBuf: HTMLCanvasElement | null = null;
-export type ModoLineas = 'oleaje' | 'interferencia' | 'latido' | 'glitch';
+// Palabra en lineas: los trazos de la palabra nacen como formas abstractas
+// (olas sueltas, remolino, radios, barras glitch) y vuelan hasta componer el texto.
+const segsCache = new Map<string, { y: number; x0: number; x1: number; v: number }[]>();
+const hash01 = (z: number): number => { const q = Math.sin(z) * 43758.5453; return q - Math.floor(q); };
+export type ModoLineas = 'oleaje' | 'remolino' | 'latido' | 'glitch';
 export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col, word = 'Xebia', mode: ModoLineas = 'oleaje') {
-  const SS = 2; // supersampling para nitidez en pantallas retina
-  if (!wordBuf) wordBuf = document.createElement('canvas');
-  const bw = Math.round(W * SS), bh = Math.round(H * SS);
-  if (wordBuf.width !== bw || wordBuf.height !== bh) { wordBuf.width = bw; wordBuf.height = bh; }
-  const c = wordBuf.getContext('2d')!;
-  // ciclo de formacion: campo abstracto libre -> se condensa en la palabra -> se deshace
-  const raw = 0.5 + 0.5 * Math.sin(t * 0.00028);
-  const form = raw * raw * (3 - 2 * raw);
-  const n = 58;
-  const pulseX = (((t * 0.00038) % 1.25 + 1.25) % 1.25) * W * 1.2 - W * 0.1;
-  const tq = Math.floor(t * 0.004);
-  const drawField = (g: CanvasRenderingContext2D, free: number, alphaBase: number): void => {
-    g.lineCap = 'round';
+  const key = word + '|' + (W | 0) + 'x' + (H | 0);
+  let segs = segsCache.get(key);
+  if (!segs) {
+    // escanea la mascara del texto por filas -> segmentos horizontales (los trazos)
+    const mk = textMask(word, W | 0, H | 0);
+    const n = 48;
+    segs = [];
     for (let i = 0; i < n; i++) {
       const v = i / (n - 1);
-      const y0 = H * (0.5 + (v - 0.5) * (0.66 + 0.26 * free));
-      g.strokeStyle = col(v);
-      g.lineWidth = H * 0.0032;
-      let xOff = 0, a = 1;
-      if (mode === 'glitch') {
-        const r1 = Math.sin(tq * 12.9898 + i * 78.233);
-        xOff = Math.abs(r1) > 0.72 - 0.4 * free ? r1 * W * (0.018 + 0.07 * free) : 0;
-        const r2 = Math.sin(tq * 3.7 + i * 17.1);
-        a = Math.abs(r2) > 0.93 ? 0.25 : 1;
+      const y = H * (0.5 + (v - 0.5) * 0.7);
+      let run = -1;
+      for (let x = 0; x <= W; x += 2) {
+        const ins = inMask(mk, x, y);
+        if (ins && run < 0) run = x;
+        else if (!ins && run >= 0) { if (x - run > 4) segs.push({ y, x0: run, x1: x, v }); run = -1; }
       }
-      g.globalAlpha = a * alphaBase;
-      g.beginPath();
-      for (let x = 0; x <= W; x += W / 110) {
-        let y = y0;
-        if (mode === 'oleaje') {
-          y += H * (0.012 + 0.15 * free) * Math.sin(x * (0.016 - 0.009 * free) + v * 8 - t * 0.0012)
-            + H * (0.006 + 0.08 * free) * Math.sin(x * 0.006 + t * 0.0007 + v * 3);
-        } else if (mode === 'interferencia') {
-          y += H * (0.008 + 0.11 * free) * Math.sin(x * 0.021 - t * 0.0011 + v * 5)
-            + H * (0.008 + 0.11 * free) * Math.sin(x * 0.017 + t * 0.0009 - v * 5);
-        } else if (mode === 'latido') {
-          const g2 = Math.exp(-Math.pow((x - pulseX) / (W * 0.055), 2));
-          y += H * 0.0035 * Math.sin(x * 0.02 + v * 6 + t * 0.0006)
-            + H * (0.05 + 0.13 * free) * g2 * Math.sin(x * 0.05 + v * 9 + t * 0.003);
-        } else {
-          y += H * 0.002 * Math.sin(x * 0.01 + v * 5 + t * 0.0005);
-        }
-        if (x === 0) g.moveTo(x + xOff, y); else g.lineTo(x + xOff, y);
-      }
-      g.stroke();
+      if (run >= 0) segs.push({ y, x0: run, x1: W, v });
     }
-    g.globalAlpha = 1;
-  };
-  // capa libre (el campo abstracto, sin recortar) sobre el lienzo
-  if (form < 0.97) drawField(ctx, 1, (1 - form) * 0.6);
-  // capa palabra: mismas lineas, casi quietas, recortadas por el texto
-  if (form > 0.03) {
-    c.setTransform(SS, 0, 0, SS, 0, 0);
-    c.clearRect(0, 0, W, H);
-    drawField(c, (1 - form) * 0.5, 1);
-    c.globalCompositeOperation = 'destination-in';
-    let size = H * 0.62;
-    const font = (px: number) => '700 ' + px + 'px -apple-system, "Segoe UI", "Helvetica Neue", sans-serif';
-    c.font = font(size);
-    size *= Math.min(1, (W * 0.84) / c.measureText(word).width);
-    c.font = font(size);
-    c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff';
-    c.fillText(word, W / 2, H / 2);
-    c.globalCompositeOperation = 'source-over';
-    ctx.save(); ctx.globalAlpha = form; ctx.drawImage(wordBuf, 0, 0, W, H); ctx.restore();
+    segsCache.set(key, segs);
   }
+  // ciclo: abstracto -> palabra -> se deshace
+  const raw = 0.5 + 0.5 * Math.sin(t * 0.00028);
+  const form = raw * raw * (3 - 2 * raw);
+  ctx.lineCap = 'round';
+  ctx.lineWidth = H * 0.0035;
+  const P = 14;
+  for (let sI = 0; sI < segs.length; sI++) {
+    const sg = segs[sI];
+    const L = sg.x1 - sg.x0;
+    const ph = sI * 2.399963;
+    let cx: number, cy: number, dx: number, dy: number, curve: number;
+    if (mode === 'oleaje') {
+      // trazos flotando como olas sueltas por todo el cuadro
+      cx = W * (0.5 + 0.42 * Math.sin(ph)) + W * 0.05 * Math.sin(t * 0.0005 + ph);
+      cy = H * (0.5 + 0.4 * Math.sin(ph * 2.1)) + H * 0.05 * Math.sin(t * 0.0007 + ph * 1.3);
+      const ang = 0.5 * Math.sin(ph * 3 + t * 0.0004);
+      dx = Math.cos(ang); dy = Math.sin(ang);
+      curve = H * 0.05;
+    } else if (mode === 'remolino') {
+      // trazos orbitando en un remolino que colapsa en la palabra
+      const rad = Math.min(W, H) * (0.16 + 0.36 * ((sI * 0.618) % 1));
+      const a = ph + t * (sI % 2 ? 0.0006 : -0.0005);
+      cx = W / 2 + rad * 1.5 * Math.cos(a); cy = H / 2 + rad * Math.sin(a);
+      dx = -Math.sin(a); dy = Math.cos(a);
+      curve = H * 0.025;
+    } else if (mode === 'latido') {
+      // radios que laten alrededor del centro y colapsan
+      const rad = Math.min(W, H) * (0.1 + 0.4 * ((sI * 0.382) % 1)) * (1 + 0.18 * Math.sin(t * 0.002 + ph));
+      cx = W / 2 + rad * 1.6 * Math.cos(ph); cy = H / 2 + rad * Math.sin(ph);
+      dx = Math.cos(ph); dy = Math.sin(ph);
+      curve = H * 0.018;
+    } else {
+      // barras digitales saltando a posiciones aleatorias (glitch) que encajan en el texto
+      const tq = Math.floor(t * 0.0025);
+      cx = W * (0.08 + 0.84 * hash01(tq * 3.1 + ph));
+      cy = H * (0.06 + 0.88 * hash01(tq * 1.7 + ph * 2.3));
+      dx = 1; dy = 0; curve = 0;
+    }
+    ctx.strokeStyle = col(sg.v);
+    ctx.globalAlpha = 0.5 + 0.5 * form;
+    ctx.beginPath();
+    for (let k = 0; k <= P; k++) {
+      const u = k / P;
+      const ax = cx + dx * (u - 0.5) * L;
+      const ay = cy + dy * (u - 0.5) * L + curve * Math.sin(u * 6.283 + t * 0.002 + ph);
+      const fx = sg.x0 + u * L;
+      const fy = sg.y + H * 0.0022 * Math.sin(fx * 0.02 + sg.v * 6 + t * 0.001);
+      const x = ax + (fx - ax) * form, y = ay + (fy - ay) * form;
+      if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 }
 // Palabra en puntos: halftone que se ensambla desde una nube dispersa (estilo "AI")
 const dotsCache = new Map<string, { x: number; y: number }[]>();

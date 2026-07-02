@@ -44,7 +44,7 @@ const grid = document.getElementById('grid')!;
 
 // Cards de palabras (primero): texto formado por líneas finas onduladas (Canvas 2D)
 let bgIdx = 1;
-const WORDS: [string, ModoLineas][] = [['Xebia', 'oleaje'], ['People', 'interferencia'], ['Human', 'latido'], ['Data & AI', 'glitch']];
+const WORDS: [string, ModoLineas][] = [['Xebia', 'oleaje'], ['People', 'remolino'], ['Human', 'latido'], ['Data & AI', 'glitch']];
 function buildWordCard([word, mode]: [string, ModoLineas]): void {
   const card = document.createElement('div');
   card.className = 'card';
