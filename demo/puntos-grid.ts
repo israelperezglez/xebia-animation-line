@@ -15,7 +15,10 @@ const LABELS: Record<string, string> = {
   girasol: 'Crecimiento orgánico', cometas: 'Señales entrantes',
   orbital: 'Átomo de datos', panal: 'Celdas de datos',
   circuito: 'Circuito', espectro: 'Espectro de señal',
-  clustering: 'Clustering', descenso: 'Descenso de gradiente',
+  clustering: 'Clustering',
+  marea: 'Marea de datos', escaneo: 'Escaneo', warp: 'Hipervelocidad',
+  ecos: 'Ecos', ascenso: 'Ascenso',
+  palabraLineas: 'Xebia · texto en líneas', palabraPuntos: 'AI · texto en puntos',
 };
 
 let PAL = PALETTES[1];

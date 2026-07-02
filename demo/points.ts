@@ -428,35 +428,194 @@ function clustering(ctx: CanvasRenderingContext2D, W: number, H: number, t: numb
   }
   ctx.globalAlpha = 1;
 }
-// Descenso de gradiente: particulas espiralando hacia el minimo de un cuenco 3D
-function descenso(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
-  const S = Math.min(W, H) * 0.55, rx = 0.75, ry = t * 0.00012;
-  // el cuenco: anillos de contorno tenues
-  for (let r = 1; r <= 6; r++) {
-    const rad = r / 6, per = 14 + r * 12;
-    for (let i = 0; i < per; i++) {
-      const a = (i / per) * 6.283;
-      const pr = P3(rad * Math.cos(a), 0.55 * rad * rad, rad * Math.sin(a), ry, rx, S, W, H);
-      ctx.fillStyle = col(0.3); ctx.globalAlpha = 0.16 + 0.1 * (1 - rad);
-      ctx.beginPath(); ctx.arc(pr.X, pr.Y, 0.9, 0, 6.283); ctx.fill();
+
+// Marea: alfombra de puntos a vista cenital con marejadas diagonales recorriendo todo el cuadro
+function marea(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
+  const gx = 62, gy = 40;
+  for (let i = 0; i < gx; i++) for (let j = 0; j < gy; j++) {
+    const x = (i + 0.5) / gx * W, y = (j + 0.5) / gy * H;
+    const v = 0.5 + 0.25 * Math.sin(x * 0.006 + y * 0.004 - t * 0.0013)
+      + 0.15 * Math.sin(x * 0.013 - y * 0.009 + t * 0.0008)
+      + 0.1 * Math.sin(y * 0.016 + t * 0.0006);
+    const v2 = Math.max(0, Math.min(1, v)); const e = v2 * v2;
+    ctx.fillStyle = col(0.1 + 0.65 * v2 + 0.25 * (y / H));
+    ctx.globalAlpha = 0.12 + 0.68 * e;
+    ctx.beginPath(); ctx.arc(x, y, 0.7 + 3.2 * e, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+// Escaneo: un frente luminoso ondulado barre el campo de puntos e ilumina lo que toca
+function escaneo(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
+  const gx = 56, gy = 36;
+  const fx = (((t * 0.00055) % 1.15 + 1.15) % 1.15) * W * 1.25 - W * 0.12;
+  for (let i = 0; i < gx; i++) for (let j = 0; j < gy; j++) {
+    const x = (i + 0.5) / gx * W, y = (j + 0.5) / gy * H;
+    const front = fx + W * 0.03 * Math.sin(y * 0.012 + t * 0.001);
+    const d = x - front;
+    // brillo asimetrico: fogonazo delante, rescoldo detras
+    const glow = d > 0 ? Math.exp(-d / (W * 0.02)) : Math.exp(d / (W * 0.09));
+    const idle = 0.5 + 0.5 * Math.sin(i * 1.3 + j * 2.1 + t * 0.001); // el campo respira
+    ctx.fillStyle = col(0.2 + 0.25 * (y / H) + 0.55 * glow);
+    ctx.globalAlpha = 0.14 + 0.1 * idle + 0.72 * glow;
+    ctx.beginPath(); ctx.arc(x, y, 1.1 + 0.4 * idle + 2.6 * glow, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+// Hipervelocidad: campo de estrellas acelerando radialmente hacia fuera con estelas (warp)
+function warp(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
+  const N = 300, trail = 7, cx = W / 2, cy = H / 2, R = Math.hypot(W, H) * 0.56;
+  for (let k = 0; k < N; k++) {
+    const ang = k * 2.399963;
+    const sp = 0.00014 + 0.0001 * (0.5 + 0.5 * Math.sin(k * 5.7));
+    const off = (k * 0.618) % 1;
+    for (let j = 0; j < trail; j++) {
+      const ph = ((t * sp + off) % 1 + 1) % 1 - j * 0.012;
+      if (ph <= 0.02) continue;
+      const r = Math.pow(ph, 2.3) * R;
+      const x = cx + r * Math.cos(ang), y = cy + r * Math.sin(ang);
+      if (x < -10 || x > W + 10 || y < -10 || y > H + 10) continue;
+      const fade = 1 - j / trail;
+      ctx.fillStyle = col(0.15 + 0.7 * ph + 0.15 * fade);
+      ctx.globalAlpha = (0.1 + 0.7 * fade * fade) * Math.min(1, ph * 8);
+      ctx.beginPath(); ctx.arc(x, y, (0.5 + 2.4 * ph) * (0.5 + 0.5 * fade), 0, 6.283); ctx.fill();
     }
   }
-  // particulas descendiendo en espiral, con estela
-  const M = 26, trail = 9;
-  for (let mI = 0; mI < M; mI++) {
-    const sp = 0.00009 + 0.00007 * (0.5 + 0.5 * Math.sin(mI * 5.9));
-    const off = (mI * 0.382) % 1;
-    const ph = ((t * sp + off) % 1 + 1) % 1; // 0 = borde -> 1 = minimo
-    for (let k = 0; k < trail; k++) {
-      const pk = Math.max(0, ph - k * 0.012);
-      const rad = Math.pow(1 - pk, 1.25);
-      const a = mI * 2.399963 + pk * 9;
-      const pr = P3(rad * Math.cos(a), 0.55 * rad * rad, rad * Math.sin(a), ry, rx, S, W, H);
-      const fade = 1 - k / trail;
-      ctx.fillStyle = col(0.25 + 0.6 * (1 - rad) + 0.15 * (k === 0 ? 1 : 0));
-      ctx.globalAlpha = (0.12 + 0.6 * fade * fade) * Math.min(1, (1 - pk) * 6) * (0.4 + 0.6 * pr.sc);
-      ctx.beginPath(); ctx.arc(pr.X, pr.Y, (0.8 + 1.4 * fade) * pr.sc + (k === 0 ? 0.7 : 0), 0, 6.283); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+// Ecos: anillos que nacen en focos repartidos por el cuadro y se expanden como gotas en agua
+function ecos(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
+  const E = 8, per = 52;
+  for (let e = 0; e < E; e++) {
+    const ex = W * (0.12 + 0.76 * ((e * 0.618) % 1));
+    const ey = H * (0.14 + 0.72 * ((e * 0.382 + 0.21) % 1));
+    const Rm = Math.min(W, H) * (0.34 + 0.2 * ((e * 0.5) % 1));
+    for (let ring = 0; ring < 3; ring++) {
+      const ph = ((t * 0.00028 + e * 0.37 + ring / 3) % 1 + 1) % 1;
+      const rad = ph * Rm;
+      const a0 = e * 1.3 + ring;
+      for (let i = 0; i < per; i++) {
+        const a = (i / per) * 6.283 + a0;
+        const x = ex + rad * Math.cos(a), y = ey + rad * Math.sin(a);
+        if (x < -5 || x > W + 5 || y < -5 || y > H + 5) continue;
+        ctx.fillStyle = col(0.2 + 0.6 * (e / (E - 1)) + 0.2 * (1 - ph));
+        ctx.globalAlpha = (0.75 * Math.pow(1 - ph, 1.6) + 0.05) * Math.min(1, ph * 10);
+        ctx.beginPath(); ctx.arc(x, y, 0.9 + 1.6 * (1 - ph), 0, 6.283); ctx.fill();
+      }
     }
+    // el foco late
+    const beat = 0.5 + 0.5 * Math.sin(t * 0.002 + e * 2.1);
+    ctx.fillStyle = col(0.8); ctx.globalAlpha = 0.3 + 0.5 * beat;
+    ctx.beginPath(); ctx.arc(ex, ey, 1.5 + 1.5 * beat, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+// Ascenso: ascuas de datos subiendo por todo el ancho, oscilando y apagandose arriba
+function ascenso(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
+  const N = 340;
+  for (let k = 0; k < N; k++) {
+    const u = ((k * 0.618) % 1);
+    const sp = 0.00009 + 0.00009 * (0.5 + 0.5 * Math.sin(k * 7.3));
+    const ph = ((t * sp + k * 0.37) % 1 + 1) % 1; // 0 abajo -> 1 arriba
+    const y = H * (1.06 - ph * 1.12);
+    const x = W * u + W * 0.025 * Math.sin(ph * 7 + k) + W * 0.012 * Math.sin(ph * 17 - t * 0.001 + k * 2);
+    const tw = 0.5 + 0.5 * Math.sin(t * 0.003 + k * 3.1);
+    const life = Math.min(1, ph * 6) * Math.pow(1 - ph, 0.7); // nace y muere suave
+    ctx.fillStyle = col(0.15 + 0.6 * ph + 0.25 * tw);
+    ctx.globalAlpha = (0.3 + 0.6 * tw) * life;
+    ctx.beginPath(); ctx.arc(x, y, (1.3 + 2 * tw) * (0.55 + 0.45 * life), 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ——— Palabras: texto formado por lineas o por puntos ———
+const maskCache = new Map<string, ImageData>();
+function textMask(word: string, W: number, H: number): ImageData {
+  const key = word + '|' + W + 'x' + H;
+  let m = maskCache.get(key);
+  if (m) return m;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d')!;
+  let size = H * 0.62;
+  const font = (px: number) => '700 ' + px + 'px -apple-system, "Segoe UI", "Helvetica Neue", sans-serif';
+  c.font = font(size);
+  size *= Math.min(1, (W * 0.84) / c.measureText(word).width);
+  c.font = font(size);
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff';
+  c.fillText(word, W / 2, H / 2);
+  m = c.getImageData(0, 0, W, H);
+  maskCache.set(key, m);
+  return m;
+}
+const inMask = (m: ImageData, x: number, y: number) =>
+  x >= 0 && y >= 0 && x < m.width && y < m.height && m.data[(((y | 0) * m.width) + (x | 0)) * 4 + 3] > 120;
+
+// Palabra en lineas: franjas horizontales onduladas recortadas por el texto (estilo "People")
+let wordBuf: HTMLCanvasElement | null = null;
+function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
+  const word = 'Xebia', SS = 2; // supersampling para nitidez en pantallas retina
+  if (!wordBuf) wordBuf = document.createElement('canvas');
+  const bw = Math.round(W * SS), bh = Math.round(H * SS);
+  if (wordBuf.width !== bw || wordBuf.height !== bh) { wordBuf.width = bw; wordBuf.height = bh; }
+  const c = wordBuf.getContext('2d')!;
+  c.setTransform(SS, 0, 0, SS, 0, 0);
+  c.clearRect(0, 0, W, H);
+  const n = 30;
+  c.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const v = i / (n - 1);
+    const y0 = H * (0.5 + (v - 0.5) * 0.66);
+    c.strokeStyle = col(v);
+    c.lineWidth = H * 0.011;
+    c.beginPath();
+    for (let x = 0; x <= W; x += W / 110) {
+      const y = y0 + H * 0.014 * Math.sin(x * 0.016 + v * 8 - t * 0.0012)
+        + H * 0.007 * Math.sin(x * 0.006 + t * 0.0007 + v * 3);
+      if (x === 0) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.stroke();
+  }
+  // recorte: solo queda lo que cae dentro del texto
+  c.globalCompositeOperation = 'destination-in';
+  let size = H * 0.62;
+  const font = (px: number) => '700 ' + px + 'px -apple-system, "Segoe UI", "Helvetica Neue", sans-serif';
+  c.font = font(size);
+  size *= Math.min(1, (W * 0.84) / c.measureText(word).width);
+  c.font = font(size);
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff';
+  c.fillText(word, W / 2, H / 2);
+  c.globalCompositeOperation = 'source-over';
+  ctx.drawImage(wordBuf, 0, 0, W, H);
+}
+// Palabra en puntos: halftone que se ensambla desde una nube dispersa (estilo "AI")
+const dotsCache = new Map<string, { x: number; y: number }[]>();
+function palabraPuntos(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
+  const word = 'AI';
+  const key = word + '|' + (W | 0) + 'x' + (H | 0);
+  let pts = dotsCache.get(key);
+  if (!pts) {
+    const m = textMask(word, W | 0, H | 0);
+    const step = Math.max(5, H / 40);
+    pts = [];
+    for (let y = step / 2, r = 0; y < H; y += step, r++) {
+      for (let x = step / 2 + (r % 2) * step * 0.5; x < W; x += step) {
+        if (inMask(m, x, y)) pts.push({ x, y });
+      }
+    }
+    dotsCache.set(key, pts);
+  }
+  // ciclo: nube dispersa -> palabra ensamblada -> se libera
+  const raw = 0.5 + 0.5 * Math.sin(t * 0.00035);
+  const m01 = raw * raw * (3 - 2 * raw);
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    const sx = W * (0.5 + 0.47 * Math.sin(i * 12.9898)), sy = H * (0.5 + 0.45 * Math.sin(i * 4.1414));
+    const x = sx + (p.x - sx) * m01, y = sy + (p.y - sy) * m01;
+    const tw = 0.5 + 0.5 * Math.sin(t * 0.0016 + i * 5.3);
+    // cuando esta ensamblada, una onda de brillo recorre la palabra
+    const wave = 0.5 + 0.5 * Math.sin(p.x * 0.012 + p.y * 0.006 - t * 0.0022);
+    ctx.fillStyle = col(0.15 + 0.55 * (p.y / H) + 0.3 * wave);
+    ctx.globalAlpha = (0.2 + 0.4 * tw) * (1 - m01) + (0.35 + 0.55 * wave) * m01;
+    ctx.beginPath(); ctx.arc(x, y, (1 + 1.2 * tw) * (1 - m01) + (1.2 + 2 * wave) * m01, 0, 6.283); ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
@@ -465,5 +624,6 @@ export const POINTS: Record<string, PointVariant['fn']> = {
   pondas, pcresta, premolino, montanas, olas, datos, adn,
   fusion, pcubo, enjambre, bandada, cardumen,
   ripples, corrientes, lluvia, vortices, supernova, girasol, cometas,
-  orbital, panal, circuito, espectro, clustering, descenso,
+  orbital, panal, circuito, espectro, clustering,
+  marea, escaneo, warp, ecos, ascenso, palabraLineas, palabraPuntos,
 };
