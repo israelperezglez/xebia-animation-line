@@ -18,7 +18,7 @@ const LABELS: Record<string, string> = {
   clustering: 'Clustering',
   marea: 'Marea de datos', escaneo: 'Escaneo', warp: 'Hipervelocidad',
   ecos: 'Ecos', ascenso: 'Ascenso',
-  textoAI: 'AI · texto en puntos', textoPeople: 'People · texto en puntos',
+  textoXebia: 'Xebia · texto en puntos', textoPeople: 'People · texto en puntos',
   textoHuman: 'Human · texto en puntos', textoDataAI: 'Data & AI · texto en puntos',
 };
 

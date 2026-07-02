@@ -551,49 +551,84 @@ const inMask = (m: ImageData, x: number, y: number) =>
 
 // Palabra en lineas: franjas horizontales onduladas recortadas por el texto (estilo "People")
 let wordBuf: HTMLCanvasElement | null = null;
-export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col, word = 'Xebia') {
+export type ModoLineas = 'oleaje' | 'interferencia' | 'latido' | 'glitch';
+export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col, word = 'Xebia', mode: ModoLineas = 'oleaje') {
   const SS = 2; // supersampling para nitidez en pantallas retina
   if (!wordBuf) wordBuf = document.createElement('canvas');
   const bw = Math.round(W * SS), bh = Math.round(H * SS);
   if (wordBuf.width !== bw || wordBuf.height !== bh) { wordBuf.width = bw; wordBuf.height = bh; }
   const c = wordBuf.getContext('2d')!;
-  c.setTransform(SS, 0, 0, SS, 0, 0);
-  c.clearRect(0, 0, W, H);
+  // ciclo de formacion: campo abstracto libre -> se condensa en la palabra -> se deshace
+  const raw = 0.5 + 0.5 * Math.sin(t * 0.00028);
+  const form = raw * raw * (3 - 2 * raw);
   const n = 58;
-  c.lineCap = 'round';
-  for (let i = 0; i < n; i++) {
-    const v = i / (n - 1);
-    const y0 = H * (0.5 + (v - 0.5) * 0.66);
-    c.strokeStyle = col(v);
-    c.lineWidth = H * 0.0032;
-    c.beginPath();
-    for (let x = 0; x <= W; x += W / 110) {
-      const y = y0 + H * 0.014 * Math.sin(x * 0.016 + v * 8 - t * 0.0012)
-        + H * 0.007 * Math.sin(x * 0.006 + t * 0.0007 + v * 3);
-      if (x === 0) c.moveTo(x, y); else c.lineTo(x, y);
+  const pulseX = (((t * 0.00038) % 1.25 + 1.25) % 1.25) * W * 1.2 - W * 0.1;
+  const tq = Math.floor(t * 0.004);
+  const drawField = (g: CanvasRenderingContext2D, free: number, alphaBase: number): void => {
+    g.lineCap = 'round';
+    for (let i = 0; i < n; i++) {
+      const v = i / (n - 1);
+      const y0 = H * (0.5 + (v - 0.5) * (0.66 + 0.26 * free));
+      g.strokeStyle = col(v);
+      g.lineWidth = H * 0.0032;
+      let xOff = 0, a = 1;
+      if (mode === 'glitch') {
+        const r1 = Math.sin(tq * 12.9898 + i * 78.233);
+        xOff = Math.abs(r1) > 0.72 - 0.4 * free ? r1 * W * (0.018 + 0.07 * free) : 0;
+        const r2 = Math.sin(tq * 3.7 + i * 17.1);
+        a = Math.abs(r2) > 0.93 ? 0.25 : 1;
+      }
+      g.globalAlpha = a * alphaBase;
+      g.beginPath();
+      for (let x = 0; x <= W; x += W / 110) {
+        let y = y0;
+        if (mode === 'oleaje') {
+          y += H * (0.012 + 0.15 * free) * Math.sin(x * (0.016 - 0.009 * free) + v * 8 - t * 0.0012)
+            + H * (0.006 + 0.08 * free) * Math.sin(x * 0.006 + t * 0.0007 + v * 3);
+        } else if (mode === 'interferencia') {
+          y += H * (0.008 + 0.11 * free) * Math.sin(x * 0.021 - t * 0.0011 + v * 5)
+            + H * (0.008 + 0.11 * free) * Math.sin(x * 0.017 + t * 0.0009 - v * 5);
+        } else if (mode === 'latido') {
+          const g2 = Math.exp(-Math.pow((x - pulseX) / (W * 0.055), 2));
+          y += H * 0.0035 * Math.sin(x * 0.02 + v * 6 + t * 0.0006)
+            + H * (0.05 + 0.13 * free) * g2 * Math.sin(x * 0.05 + v * 9 + t * 0.003);
+        } else {
+          y += H * 0.002 * Math.sin(x * 0.01 + v * 5 + t * 0.0005);
+        }
+        if (x === 0) g.moveTo(x + xOff, y); else g.lineTo(x + xOff, y);
+      }
+      g.stroke();
     }
-    c.stroke();
+    g.globalAlpha = 1;
+  };
+  // capa libre (el campo abstracto, sin recortar) sobre el lienzo
+  if (form < 0.97) drawField(ctx, 1, (1 - form) * 0.6);
+  // capa palabra: mismas lineas, casi quietas, recortadas por el texto
+  if (form > 0.03) {
+    c.setTransform(SS, 0, 0, SS, 0, 0);
+    c.clearRect(0, 0, W, H);
+    drawField(c, (1 - form) * 0.5, 1);
+    c.globalCompositeOperation = 'destination-in';
+    let size = H * 0.62;
+    const font = (px: number) => '700 ' + px + 'px -apple-system, "Segoe UI", "Helvetica Neue", sans-serif';
+    c.font = font(size);
+    size *= Math.min(1, (W * 0.84) / c.measureText(word).width);
+    c.font = font(size);
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff';
+    c.fillText(word, W / 2, H / 2);
+    c.globalCompositeOperation = 'source-over';
+    ctx.save(); ctx.globalAlpha = form; ctx.drawImage(wordBuf, 0, 0, W, H); ctx.restore();
   }
-  // recorte: solo queda lo que cae dentro del texto
-  c.globalCompositeOperation = 'destination-in';
-  let size = H * 0.62;
-  const font = (px: number) => '700 ' + px + 'px -apple-system, "Segoe UI", "Helvetica Neue", sans-serif';
-  c.font = font(size);
-  size *= Math.min(1, (W * 0.84) / c.measureText(word).width);
-  c.font = font(size);
-  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff';
-  c.fillText(word, W / 2, H / 2);
-  c.globalCompositeOperation = 'source-over';
-  ctx.drawImage(wordBuf, 0, 0, W, H);
 }
 // Palabra en puntos: halftone que se ensambla desde una nube dispersa (estilo "AI")
 const dotsCache = new Map<string, { x: number; y: number }[]>();
-export const textoPuntos = (word: string) => function palabraPuntos(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
+export type ModoPuntos = 'nube' | 'olas' | 'latido' | 'lluvia';
+export const textoPuntos = (word: string, mode: ModoPuntos = 'nube') => function palabraPuntos(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
   const key = word + '|' + (W | 0) + 'x' + (H | 0);
   let pts = dotsCache.get(key);
   if (!pts) {
     const m = textMask(word, W | 0, H | 0);
-    const step = Math.max(3.5, H / 68);
+    const step = Math.max(2.6, H / 88);
     pts = [];
     for (let y = step / 2, r = 0; y < H; y += step, r++) {
       for (let x = step / 2 + (r % 2) * step * 0.5; x < W; x += step) {
@@ -602,26 +637,65 @@ export const textoPuntos = (word: string) => function palabraPuntos(ctx: CanvasR
     }
     dotsCache.set(key, pts);
   }
-  // ciclo: nube dispersa -> palabra ensamblada -> se libera
+  // ciclo de ensamblado (solo modo nube)
   const raw = 0.5 + 0.5 * Math.sin(t * 0.00035);
-  const m01 = raw * raw * (3 - 2 * raw);
+  const m01 = mode === 'nube' ? raw * raw * (3 - 2 * raw) : 1;
+  // latido: dos golpes y pausa (lub-dub)
+  const beatPh = ((t * 0.0004) % 1 + 1) % 1;
+  const beat = Math.exp(-Math.pow((beatPh - 0.12) / 0.05, 2)) + 0.7 * Math.exp(-Math.pow((beatPh - 0.32) / 0.05, 2));
+  const rain = ((t * 0.00032) % 1.35 + 1.35) % 1.35;
   for (let i = 0; i < pts.length; i++) {
     const p = pts[i];
-    const sx = W * (0.5 + 0.47 * Math.sin(i * 12.9898)), sy = H * (0.5 + 0.45 * Math.sin(i * 4.1414));
-    const x = sx + (p.x - sx) * m01, y = sy + (p.y - sy) * m01;
     const tw = 0.5 + 0.5 * Math.sin(t * 0.0016 + i * 5.3);
-    // cuando esta ensamblada, una onda de brillo recorre la palabra
     const wave = 0.5 + 0.5 * Math.sin(p.x * 0.012 + p.y * 0.006 - t * 0.0022);
+    let x = p.x, y = p.y, alpha, size;
+    if (mode === 'nube') {
+      const sx = W * (0.5 + 0.47 * Math.sin(i * 12.9898)), sy = H * (0.5 + 0.45 * Math.sin(i * 4.1414));
+      x = sx + (p.x - sx) * m01; y = sy + (p.y - sy) * m01;
+      alpha = (0.2 + 0.4 * tw) * (1 - m01) + (0.5 + 0.5 * wave) * m01;
+      size = (0.7 + 0.8 * tw) * (1 - m01) + (0.75 + 0.95 * wave) * m01;
+    } else if (mode === 'olas') {
+      // nace como filas de olas fluyendo por todo el cuadro y converge en la palabra
+      const form = raw * raw * (3 - 2 * raw);
+      const row = i % 14;
+      const sx = p.x;
+      const sy = H * (0.1 + 0.8 * row / 13) + H * 0.055 * Math.sin(p.x * 0.011 + row * 1.3 - t * 0.0014);
+      x = sx + (p.x - sx) * form; y = sy + (p.y - sy) * form;
+      const w2 = 0.5 + 0.5 * Math.sin(p.x * 0.018 + p.y * 0.012 - t * 0.0028);
+      alpha = (0.2 + 0.45 * tw) * (1 - form) + (0.3 + 0.65 * w2) * form;
+      size = (0.7 + 0.8 * tw) * (1 - form) + (0.65 + 1.25 * w2) * form;
+    } else if (mode === 'latido') {
+      // nace como anillos concentricos girando y colapsa en la palabra; luego late (lub-dub)
+      const form = raw * raw * (3 - 2 * raw);
+      const ringR = Math.min(W, H) * (0.16 + 0.4 * ((i % 6) / 5));
+      const ang = i * 2.399963 + t * 0.00045;
+      const sx = W / 2 + ringR * Math.cos(ang), sy = H / 2 + ringR * Math.sin(ang);
+      x = sx + (p.x - sx) * form; y = sy + (p.y - sy) * form;
+      const d = Math.hypot(p.x - W / 2, p.y - H / 2) / (W * 0.45);
+      const ring = beat * Math.exp(-Math.pow((d - beatPh * 1.6) / 0.22, 2));
+      alpha = (0.25 + 0.4 * tw) * (1 - form) + (0.4 + 0.55 * Math.min(1, 0.3 * wave + ring * 1.4)) * form;
+      size = (0.7 + 0.8 * tw) * (1 - form) + (0.75 + 0.45 * wave + 1.9 * ring) * form;
+    } else {
+      // lluvia: cada punto cae y aterriza en su sitio, por columnas
+      const stag = (p.x / W) * 0.55 + 0.12 * (0.5 + 0.5 * Math.sin(i * 7.7));
+      const e = Math.max(0, Math.min(1, (rain - stag) * 3.5));
+      const ease = 1 - Math.pow(1 - e, 3);
+      y = p.y - (1 - ease) * H * 0.55;
+      const out = rain > 1.2 ? Math.max(0, 1 - (rain - 1.2) * 6.5) : 1; // disolucion y reinicio
+      alpha = (0.15 + 0.75 * ease) * out;
+      size = (0.7 + 0.9 * ease + 0.3 * tw) * (0.6 + 0.4 * out);
+      if (e <= 0) continue;
+    }
     ctx.fillStyle = col(0.15 + 0.55 * (p.y / H) + 0.3 * wave);
-    ctx.globalAlpha = (0.2 + 0.4 * tw) * (1 - m01) + (0.5 + 0.5 * wave) * m01;
-    ctx.beginPath(); ctx.arc(x, y, (0.9 + 1 * tw) * (1 - m01) + (1.1 + 1.4 * wave) * m01, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+    ctx.beginPath(); ctx.arc(x, y, Math.max(0.2, size), 0, 6.283); ctx.fill();
   }
   ctx.globalAlpha = 1;
 };
 
 export const POINTS: Record<string, PointVariant['fn']> = {
-  textoAI: textoPuntos('AI'), textoPeople: textoPuntos('People'),
-  textoHuman: textoPuntos('Human'), textoDataAI: textoPuntos('Data & AI'),
+  textoXebia: textoPuntos('Xebia', 'nube'), textoPeople: textoPuntos('People', 'olas'),
+  textoHuman: textoPuntos('Human', 'latido'), textoDataAI: textoPuntos('Data & AI', 'lluvia'),
   pondas, pcresta, premolino, montanas, olas, datos, adn,
   fusion, pcubo, enjambre, bandada, cardumen,
   ripples, corrientes, lluvia, vortices, supernova, girasol, cometas,
