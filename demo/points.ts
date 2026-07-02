@@ -560,7 +560,7 @@ export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: numbe
   if (!segs) {
     // escanea la mascara del texto por filas -> segmentos horizontales (los trazos)
     const mk = textMask(word, W | 0, H | 0);
-    const n = 48;
+    const n = 66;
     segs = [];
     for (let i = 0; i < n; i++) {
       const v = i / (n - 1);
@@ -579,7 +579,7 @@ export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: numbe
   const raw = 0.5 + 0.5 * Math.sin(t * 0.00028);
   const form = raw * raw * (3 - 2 * raw);
   ctx.lineCap = 'round';
-  ctx.lineWidth = H * 0.0035;
+  ctx.lineWidth = 1.2; // mismo grosor que las líneas de las animaciones
   const P = 14;
   const total = segs.length;
   for (let sI = 0; sI < total; sI++) {
