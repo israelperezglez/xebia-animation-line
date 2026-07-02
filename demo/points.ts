@@ -403,28 +403,28 @@ function espectro(ctx: CanvasRenderingContext2D, W: number, H: number, t: number
   ctx.globalAlpha = 1;
 }
 
-// Clustering: los puntos se agrupan en clusteres y se dispersan en ciclos (k-means visual)
+// Clustering: la nube dispersa converge en un unico cluster compacto y se libera en ciclos
 function clustering(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
-  const N = 460, K = 5;
-  // fase suave: 0 = nube dispersa -> 1 = agrupado en clusteres
-  const raw = 0.5 + 0.5 * Math.sin(t * 0.00045);
+  const N = 460;
+  // fase suave: 0 = nube dispersa -> 1 = todo condensado en un punto
+  const raw = 0.5 + 0.5 * Math.sin(t * 0.0004);
   const m = raw * raw * (3 - 2 * raw); // easing
+  // el centro de convergencia deriva muy despacio
+  const cx = W * (0.5 + 0.06 * Math.sin(t * 0.00012)), cy = H * (0.5 + 0.05 * Math.cos(t * 0.0001));
+  const R = Math.min(W, H) * 0.2;
   for (let i = 0; i < N; i++) {
-    const k = i % K;
-    // centro del cluster: pentagono que deriva lentamente
-    const ca = (k / K) * 6.283 + t * 0.00008;
-    const cx = W * (0.5 + 0.26 * Math.cos(ca)), cy = H * (0.5 + 0.26 * Math.sin(ca));
-    // posicion base dispersa (determinista)
+    const u = i / N;
+    // posicion base dispersa (determinista, llena el cuadro)
     const bx = W * (0.5 + 0.46 * Math.sin(i * 12.9898)), by = H * (0.5 + 0.44 * Math.sin(i * 4.1414));
-    // radio propio dentro del cluster
-    const rr = (18 + 40 * (0.5 + 0.5 * Math.sin(i * 7.7))) * (Math.min(W, H) / 600);
-    const aa = i * 2.399963 + t * 0.0004;
+    // destino: disco filotactico ordenado (angulo aureo) girando despacio
+    const rr = R * Math.sqrt(u);
+    const aa = i * 2.399963 + t * 0.0003;
     const tx = cx + rr * Math.cos(aa), ty = cy + rr * Math.sin(aa);
     const x = bx + (tx - bx) * m, y = by + (ty - by) * m;
     const tw = 0.5 + 0.5 * Math.sin(t * 0.0015 + i * 5.3);
-    ctx.fillStyle = col(k / (K - 1));
-    ctx.globalAlpha = 0.2 + 0.45 * tw + 0.25 * m;
-    ctx.beginPath(); ctx.arc(x, y, 0.9 + 1.1 * tw + 0.8 * m, 0, 6.283); ctx.fill();
+    ctx.fillStyle = col(0.15 + 0.7 * u + 0.15 * m);
+    ctx.globalAlpha = 0.2 + 0.45 * tw + 0.3 * m;
+    ctx.beginPath(); ctx.arc(x, y, 0.9 + 1.1 * tw + 0.9 * m, 0, 6.283); ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
