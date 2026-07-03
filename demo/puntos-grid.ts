@@ -20,7 +20,7 @@ const LABELS: Record<string, string> = {
   ecos: 'Ecos', ascenso: 'Ascenso',
   textoXebia: 'Xebia · texto en puntos', textoPeople: 'People · texto en puntos',
   textoHuman: 'Human · texto en puntos', textoDataAI: 'Data & AI · texto en puntos',
-  textoAIRed: 'AI · red neuronal', textoDataScan: 'Data · escáner', textoGenAI: 'GenAI · descifrado',
+  textoDataScan: 'Data · escáner', textoGenAI: 'GenAI · descifrado',
 };
 
 let PAL = PALETTES[1];

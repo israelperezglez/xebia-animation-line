@@ -640,8 +640,7 @@ export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: numbe
 }
 // Palabra en puntos: halftone que se ensambla desde una nube dispersa (estilo "AI")
 const dotsCache = new Map<string, { x: number; y: number }[]>();
-const edgesCache = new Map<string, [number, number][]>();
-export type ModoPuntos = 'nube' | 'olas' | 'latido' | 'lluvia' | 'escaner' | 'red' | 'descifrado';
+export type ModoPuntos = 'nube' | 'olas' | 'latido' | 'lluvia' | 'escaner' | 'descifrado';
 export const textoPuntos = (word: string, mode: ModoPuntos = 'nube') => function palabraPuntos(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
   const key = word + '|' + (W | 0) + 'x' + (H | 0);
   let pts = dotsCache.get(key);
@@ -705,12 +704,6 @@ export const textoPuntos = (word: string, mode: ModoPuntos = 'nube') => function
         alpha = (0.35 + 0.45 * wave + 0.6 * glow) * out;
         size = (0.9 + 1.1 * wave + 1.6 * glow) * (0.6 + 0.4 * out);
       }
-    } else if (mode === 'red') {
-      // la palabra como red neuronal: nodos latiendo (las aristas se pintan aparte)
-      const node = i % 9 === 0;
-      const act = 0.5 + 0.5 * Math.sin(t * 0.0018 + i * 2.7);
-      alpha = node ? 0.5 + 0.5 * act : 0.25 + 0.35 * wave;
-      size = node ? 1.6 + 2 * act : 0.8 + 0.8 * wave;
     } else if (mode === 'descifrado') {
       // ruido caotico que se va bloqueando en el texto, punto a punto
       const ph = ((t * 0.00032) % 1.35 + 1.35) % 1.35;
@@ -752,33 +745,6 @@ export const textoPuntos = (word: string, mode: ModoPuntos = 'nube') => function
         ctx.beginPath(); ctx.arc(beamX, y, 1.2, 0, 6.283); ctx.fill();
       }
     }
-  } else if (mode === 'red') {
-    // aristas entre nodos cercanos, parpadeando + senales viajando
-    let edges = edgesCache.get(key);
-    if (!edges) {
-      edges = [];
-      const nodes: number[] = [];
-      for (let i = 0; i < pts.length; i += 9) nodes.push(i);
-      const maxD = H * 0.16;
-      for (let a = 0; a < nodes.length; a++) for (let b = a + 1; b < nodes.length; b++) {
-        const A = pts[nodes[a]], B = pts[nodes[b]];
-        const d = Math.hypot(A.x - B.x, A.y - B.y);
-        if (d > H * 0.03 && d < maxD && edges.length < 260) edges.push([nodes[a], nodes[b]]);
-      }
-      edgesCache.set(key, edges);
-    }
-    for (let e = 0; e < edges.length; e++) {
-      const lit = 0.5 + 0.5 * Math.sin(t * 0.0016 + e * 4.9);
-      if (lit < 0.55) continue;
-      const A = pts[edges[e][0]], B = pts[edges[e][1]];
-      ctx.strokeStyle = col(0.6); ctx.globalAlpha = 0.22 * (lit - 0.55) / 0.45;
-      ctx.lineWidth = 0.8;
-      ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
-      // senal recorriendo la arista
-      const tp = (t * 0.001 + e * 0.37) % 1;
-      ctx.fillStyle = col(0.9); ctx.globalAlpha = 0.7 * (lit - 0.55) / 0.45;
-      ctx.beginPath(); ctx.arc(A.x + (B.x - A.x) * tp, A.y + (B.y - A.y) * tp, 1.5, 0, 6.283); ctx.fill();
-    }
   }
   ctx.globalAlpha = 1;
 };
@@ -786,7 +752,7 @@ export const textoPuntos = (word: string, mode: ModoPuntos = 'nube') => function
 export const POINTS: Record<string, PointVariant['fn']> = {
   textoXebia: textoPuntos('Xebia', 'nube'), textoPeople: textoPuntos('People', 'olas'),
   textoHuman: textoPuntos('Human', 'latido'), textoDataAI: textoPuntos('Data & AI', 'lluvia'),
-  textoAIRed: textoPuntos('AI', 'red'), textoDataScan: textoPuntos('Data', 'escaner'),
+  textoDataScan: textoPuntos('Data', 'escaner'),
   textoGenAI: textoPuntos('GenAI', 'descifrado'),
   pondas, pcresta, premolino, montanas, olas, datos, adn,
   fusion, pcubo, enjambre, bandada, cardumen,
