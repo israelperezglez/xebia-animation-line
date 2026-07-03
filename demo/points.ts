@@ -549,9 +549,11 @@ function textMask(word: string, W: number, H: number): ImageData {
 const inMask = (m: ImageData, x: number, y: number) =>
   x >= 0 && y >= 0 && x < m.width && y < m.height && m.data[(((y | 0) * m.width) + (x | 0)) * 4 + 3] > 120;
 
-// Palabra en lineas: franjas horizontales onduladas recortadas por el texto (estilo "People")
+// Palabra en lineas: franjas finas recortadas por el texto, con un patron
+// de rayado distinto por palabra (horizontal, vertical, diagonal, concentrico).
 let wordBuf: HTMLCanvasElement | null = null;
-export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col, word = 'Xebia') {
+export type EstiloLineas = 'horizontal' | 'vertical' | 'diagonal' | 'concentrico';
+export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col, word = 'Xebia', estilo: EstiloLineas = 'horizontal') {
   const SS = 2; // supersampling para nitidez en pantallas retina
   if (!wordBuf) wordBuf = document.createElement('canvas');
   const bw = Math.round(W * SS), bh = Math.round(H * SS);
@@ -559,20 +561,70 @@ export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: numbe
   const c = wordBuf.getContext('2d')!;
   c.setTransform(SS, 0, 0, SS, 0, 0);
   c.clearRect(0, 0, W, H);
-  const n = 58;
   c.lineCap = 'round';
-  for (let i = 0; i < n; i++) {
-    const v = i / (n - 1);
-    const y0 = H * (0.5 + (v - 0.5) * 0.66);
-    c.strokeStyle = col(v);
-    c.lineWidth = H * 0.0032;
-    c.beginPath();
-    for (let x = 0; x <= W; x += W / 110) {
-      const y = y0 + H * 0.014 * Math.sin(x * 0.016 + v * 8 - t * 0.0012)
-        + H * 0.007 * Math.sin(x * 0.006 + t * 0.0007 + v * 3);
-      if (x === 0) c.moveTo(x, y); else c.lineTo(x, y);
+  c.lineWidth = H * 0.0032;
+  if (estilo === 'horizontal') {
+    const n = 58;
+    for (let i = 0; i < n; i++) {
+      const v = i / (n - 1);
+      const y0 = H * (0.5 + (v - 0.5) * 0.66);
+      c.strokeStyle = col(v);
+      c.beginPath();
+      for (let x = 0; x <= W; x += W / 110) {
+        const y = y0 + H * 0.014 * Math.sin(x * 0.016 + v * 8 - t * 0.0012)
+          + H * 0.007 * Math.sin(x * 0.006 + t * 0.0007 + v * 3);
+        if (x === 0) c.moveTo(x, y); else c.lineTo(x, y);
+      }
+      c.stroke();
     }
-    c.stroke();
+  } else if (estilo === 'vertical') {
+    const n = 96;
+    for (let i = 0; i < n; i++) {
+      const v = i / (n - 1);
+      const x0 = W * v;
+      c.strokeStyle = col(v);
+      c.beginPath();
+      for (let y = 0; y <= H; y += H / 80) {
+        const x = x0 + H * 0.012 * Math.sin(y * 0.018 + v * 9 - t * 0.0012)
+          + H * 0.006 * Math.sin(y * 0.007 + t * 0.0008 + v * 4);
+        if (y === 0) c.moveTo(x, y); else c.lineTo(x, y);
+      }
+      c.stroke();
+    }
+  } else if (estilo === 'diagonal') {
+    const gap = H * 0.017, n = Math.ceil((W + H) / gap);
+    for (let i = 0; i < n; i++) {
+      const v = i / (n - 1);
+      const c0 = -H + i * gap; // recta y = x - c0 (45 grados)
+      c.strokeStyle = col(v);
+      c.beginPath();
+      let first = true;
+      for (let k = 0; k <= H + 40; k += H / 60) {
+        // onda perpendicular a la diagonal
+        const w = H * 0.01 * Math.sin(k * 0.02 + v * 10 - t * 0.0013)
+          + H * 0.005 * Math.sin(k * 0.008 + t * 0.0008 + v * 5);
+        const x = c0 + k + w * 0.707, y = k - w * 0.707;
+        if (first) { c.moveTo(x, y); first = false; } else c.lineTo(x, y);
+      }
+      c.stroke();
+    }
+  } else {
+    // concentrico: anillos tipo huella dactilar desde el centro de la palabra
+    const gap = H * 0.016, maxR = Math.hypot(W / 2, H / 2);
+    for (let r = gap, i = 0; r < maxR; r += gap, i++) {
+      const v = (i * gap) / (W * 0.5);
+      c.strokeStyle = col(Math.min(1, v));
+      c.beginPath();
+      const steps = Math.max(40, Math.round(r * 0.7));
+      for (let k = 0; k <= steps; k++) {
+        const a = (k / steps) * Math.PI * 2;
+        const rr = r + H * 0.007 * Math.sin(a * 5 + r * 0.06 - t * 0.0011)
+          + H * 0.004 * Math.sin(a * 11 + t * 0.0007 + r * 0.03);
+        const x = W / 2 + rr * Math.cos(a), y = H / 2 + rr * Math.sin(a);
+        if (k === 0) c.moveTo(x, y); else c.lineTo(x, y);
+      }
+      c.stroke();
+    }
   }
   // recorte: solo queda lo que cae dentro del texto
   c.globalCompositeOperation = 'destination-in';
@@ -588,7 +640,8 @@ export function palabraLineas(ctx: CanvasRenderingContext2D, W: number, H: numbe
 }
 // Palabra en puntos: halftone que se ensambla desde una nube dispersa (estilo "AI")
 const dotsCache = new Map<string, { x: number; y: number }[]>();
-export type ModoPuntos = 'nube' | 'olas' | 'latido' | 'lluvia';
+const edgesCache = new Map<string, [number, number][]>();
+export type ModoPuntos = 'nube' | 'olas' | 'latido' | 'lluvia' | 'escaner' | 'red' | 'descifrado';
 export const textoPuntos = (word: string, mode: ModoPuntos = 'nube') => function palabraPuntos(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, col: Col) {
   const key = word + '|' + (W | 0) + 'x' + (H | 0);
   let pts = dotsCache.get(key);
@@ -641,6 +694,38 @@ export const textoPuntos = (word: string, mode: ModoPuntos = 'nube') => function
       const ring = beat * Math.exp(-Math.pow((d - beatPh * 1.6) / 0.22, 2));
       alpha = (0.25 + 0.4 * tw) * (1 - form) + (0.4 + 0.55 * Math.min(1, 0.3 * wave + ring * 1.4)) * form;
       size = (0.7 + 0.8 * tw) * (1 - form) + (0.75 + 0.45 * wave + 1.9 * ring) * form;
+    } else if (mode === 'escaner') {
+      // un haz vertical materializa la palabra a su paso
+      const sw = ((t * 0.00045) % 1.45 + 1.45) % 1.45;
+      const beamX = sw * W * 1.25 - W * 0.12;
+      const out = sw > 1.25 ? Math.max(0, 1 - (sw - 1.25) * 5) : 1; // disolucion y reinicio
+      const glow = Math.exp(-Math.abs(p.x - beamX) / (W * 0.025));
+      if (p.x > beamX + W * 0.02) { alpha = 0.07 + 0.07 * tw; size = 0.55 + 0.25 * tw; }
+      else {
+        alpha = (0.35 + 0.45 * wave + 0.6 * glow) * out;
+        size = (0.9 + 1.1 * wave + 1.6 * glow) * (0.6 + 0.4 * out);
+      }
+    } else if (mode === 'red') {
+      // la palabra como red neuronal: nodos latiendo (las aristas se pintan aparte)
+      const node = i % 9 === 0;
+      const act = 0.5 + 0.5 * Math.sin(t * 0.0018 + i * 2.7);
+      alpha = node ? 0.5 + 0.5 * act : 0.25 + 0.35 * wave;
+      size = node ? 1.6 + 2 * act : 0.8 + 0.8 * wave;
+    } else if (mode === 'descifrado') {
+      // ruido caotico que se va bloqueando en el texto, punto a punto
+      const ph = ((t * 0.00032) % 1.35 + 1.35) % 1.35;
+      const lockT = 0.12 + 0.78 * (((i * 0.618) % 1));
+      const out = ph > 1.18 ? Math.max(0, 1 - (ph - 1.18) * 6) : 1;
+      if (ph < lockT) {
+        const amp = Math.min(W, H) * 0.09 * (1 - ph / lockT * 0.6);
+        x += amp * Math.sin(i * 12.9 + Math.floor(t * 0.01) * 1.3);
+        y += amp * Math.sin(i * 7.7 + Math.floor(t * 0.011) * 1.7);
+        alpha = (0.1 + 0.35 * Math.abs(Math.sin(i * 3 + t * 0.02))) * out; // parpadeo nervioso
+        size = 0.7 + 0.9 * tw;
+      } else {
+        alpha = (0.55 + 0.45 * wave) * out; // bloqueado: firme y brillante
+        size = (1 + 1.2 * wave) * (0.6 + 0.4 * out);
+      }
     } else {
       // lluvia: cada punto cae y aterriza en su sitio, por columnas
       const stag = (p.x / W) * 0.55 + 0.12 * (0.5 + 0.5 * Math.sin(i * 7.7));
@@ -656,12 +741,53 @@ export const textoPuntos = (word: string, mode: ModoPuntos = 'nube') => function
     ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
     ctx.beginPath(); ctx.arc(x, y, Math.max(0.2, size), 0, 6.283); ctx.fill();
   }
+  if (mode === 'escaner') {
+    // el haz: columna de puntos brillantes
+    const sw = ((t * 0.00045) % 1.45 + 1.45) % 1.45;
+    const beamX = sw * W * 1.25 - W * 0.12;
+    if (beamX > -10 && beamX < W + 10) {
+      for (let k = 0; k < 40; k++) {
+        const y = (k + 0.5) / 40 * H;
+        ctx.fillStyle = col(0.85); ctx.globalAlpha = 0.5 + 0.3 * Math.sin(k * 2 + t * 0.004);
+        ctx.beginPath(); ctx.arc(beamX, y, 1.2, 0, 6.283); ctx.fill();
+      }
+    }
+  } else if (mode === 'red') {
+    // aristas entre nodos cercanos, parpadeando + senales viajando
+    let edges = edgesCache.get(key);
+    if (!edges) {
+      edges = [];
+      const nodes: number[] = [];
+      for (let i = 0; i < pts.length; i += 9) nodes.push(i);
+      const maxD = H * 0.16;
+      for (let a = 0; a < nodes.length; a++) for (let b = a + 1; b < nodes.length; b++) {
+        const A = pts[nodes[a]], B = pts[nodes[b]];
+        const d = Math.hypot(A.x - B.x, A.y - B.y);
+        if (d > H * 0.03 && d < maxD && edges.length < 260) edges.push([nodes[a], nodes[b]]);
+      }
+      edgesCache.set(key, edges);
+    }
+    for (let e = 0; e < edges.length; e++) {
+      const lit = 0.5 + 0.5 * Math.sin(t * 0.0016 + e * 4.9);
+      if (lit < 0.55) continue;
+      const A = pts[edges[e][0]], B = pts[edges[e][1]];
+      ctx.strokeStyle = col(0.6); ctx.globalAlpha = 0.22 * (lit - 0.55) / 0.45;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+      // senal recorriendo la arista
+      const tp = (t * 0.001 + e * 0.37) % 1;
+      ctx.fillStyle = col(0.9); ctx.globalAlpha = 0.7 * (lit - 0.55) / 0.45;
+      ctx.beginPath(); ctx.arc(A.x + (B.x - A.x) * tp, A.y + (B.y - A.y) * tp, 1.5, 0, 6.283); ctx.fill();
+    }
+  }
   ctx.globalAlpha = 1;
 };
 
 export const POINTS: Record<string, PointVariant['fn']> = {
   textoXebia: textoPuntos('Xebia', 'nube'), textoPeople: textoPuntos('People', 'olas'),
   textoHuman: textoPuntos('Human', 'latido'), textoDataAI: textoPuntos('Data & AI', 'lluvia'),
+  textoAIRed: textoPuntos('AI', 'red'), textoDataScan: textoPuntos('Data', 'escaner'),
+  textoGenAI: textoPuntos('GenAI', 'descifrado'),
   pondas, pcresta, premolino, montanas, olas, datos, adn,
   fusion, pcubo, enjambre, bandada, cardumen,
   ripples, corrientes, lluvia, vortices, supernova, girasol, cometas,

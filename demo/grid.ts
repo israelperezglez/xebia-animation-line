@@ -1,6 +1,7 @@
 import { LineField, VARIANT_NAMES } from '../src/index';
 import type { Background, LineFieldOptions } from '../src/index';
 import { palabraLineas, paintBg, makeCol, BACKGROUNDS as PBGS } from './points';
+import type { EstiloLineas } from './points';
 
 // Mismo orden de paletas y fondos que en /puntos
 const PALETTES = [
@@ -43,15 +44,15 @@ const grid = document.getElementById('grid')!;
 
 // Cards de palabras (primero): texto formado por líneas finas onduladas (Canvas 2D)
 let bgIdx = 1;
-const WORDS = ['Xebia', 'People', 'Human', 'Data & AI'];
-function buildWordCard(word: string): void {
+const WORDS: [string, EstiloLineas][] = [['Xebia', 'horizontal'], ['People', 'vertical'], ['Human', 'concentrico'], ['Data & AI', 'diagonal']];
+function buildWordCard([word, estilo]: [string, EstiloLineas]): void {
   const card = document.createElement('div');
   card.className = 'card';
   const cv = document.createElement('canvas');
   cv.style.position = 'absolute'; cv.style.inset = '0'; cv.style.width = '100%'; cv.style.height = '100%';
   const label = document.createElement('span');
   label.className = 'label';
-  label.textContent = word + ' · texto';
+  label.textContent = word + ' · ' + estilo;
   card.append(cv, label);
   grid.appendChild(card);
   const ctx = cv.getContext('2d')!;
@@ -65,7 +66,7 @@ function buildWordCard(word: string): void {
     if (!running) return;
     raf = requestAnimationFrame(loop);
     paintBg(ctx, w, h, PBGS[bgIdx]);
-    palabraLineas(ctx, w, h, t * 0.55, makeCol(PAL), word);
+    palabraLineas(ctx, w, h, t * 0.55, makeCol(PAL), word, estilo);
   };
   const wio = new IntersectionObserver((es) => {
     for (const e of es) {
